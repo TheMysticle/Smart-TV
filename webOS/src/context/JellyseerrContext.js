@@ -10,65 +10,22 @@ export const JellyseerrProvider = ({children}) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [user, setUser] = useState(null);
 	const [serverUrl, setServerUrl] = useState(null);
-	const [isMoonfin, setIsMoonfin] = useState(false);
 
 	useEffect(() => {
 		const init = async () => {
 			try {
 				const config = await getFromStorage('jellyseerr');
-				if (config?.moonfin) {
-					// Moonfin plugin mode - restore config
-					jellyseerrApi.setMoonfinConfig(config.jellyfinServerUrl, config.jellyfinAccessToken);
-					jellyseerrApi.setMoonfinMode(true);
-					// Set a userId so request() doesn't fail in non-moonfin code paths
-					jellyseerrApi.setConfig(config.url || config.jellyfinServerUrl, config.userId || 'moonfin-user');
-					setServerUrl(config.url || config.jellyfinServerUrl);
-					setIsEnabled(true);
-					setIsMoonfin(true);
-
-					try {
-						const status = await jellyseerrApi.getMoonfinStatus();
-						if (status?.authenticated) {
-							setUser({
-								displayName: status.displayName,
-								jellyseerrUserId: status.jellyseerrUserId,
-								permissions: status.permissions || 0xFFFFFFFF
-							});
-							setIsAuthenticated(true);
-							setServerUrl(status.url || config.url || config.jellyfinServerUrl);
-							console.log('[Jellyseerr] Moonfin session restored');
-						} else {
-							console.log('[Jellyseerr] Moonfin session not authenticated');
-						}
-					} catch (e) {
-						console.log('[Jellyseerr] Moonfin status check failed:', e.message);
-					}
-				} else if (config?.url && config?.userId) {
-					// Standard direct mode
-					jellyseerrApi.setMoonfinMode(false);
+				if (config?.url && config?.userId) {
 					jellyseerrApi.setConfig(config.url, config.userId, config.apiKey);
 					setServerUrl(config.url);
 					setIsEnabled(true);
-					setIsMoonfin(false);
 
-					// If we have an API key, validate with /status
-					if (config.apiKey) {
-						try {
-							await jellyseerrApi.testConnection();
-							setUser({displayName: 'API Key User', permissions: 0xFFFFFFFF});
-							setIsAuthenticated(true);
-							console.log('[Jellyseerr] API key validated');
-						} catch (e) {
-							console.log('[Jellyseerr] API key validation failed:', e.message);
-						}
-					} else {
-						try {
-							const userData = await jellyseerrApi.getUser();
-							setUser(userData);
-							setIsAuthenticated(true);
-						} catch (e) {
-							console.log('[Jellyseerr] Session check failed, may need to re-login');
-						}
+					try {
+						const userData = await jellyseerrApi.getUser();
+						setUser(userData);
+						setIsAuthenticated(true);
+					} catch (e) {
+						// Session expired
 					}
 				}
 			} catch (e) {
@@ -81,111 +38,10 @@ export const JellyseerrProvider = ({children}) => {
 	}, []);
 
 	const configure = useCallback(async (url, userId, apiKey = null) => {
-		jellyseerrApi.setMoonfinMode(false);
 		jellyseerrApi.setConfig(url, userId, apiKey);
 		setServerUrl(url);
 		setIsEnabled(true);
-		setIsMoonfin(false);
-		await saveToStorage('jellyseerr', {url, userId, apiKey, moonfin: false});
-
-		// If using API key, validate with /status
-		if (apiKey) {
-			try {
-				await jellyseerrApi.testConnection();
-				setUser({displayName: 'API Key User', permissions: 0xFFFFFFFF});
-				setIsAuthenticated(true);
-				console.log('[Jellyseerr] API key validated successfully');
-			} catch (e) {
-				console.log('[Jellyseerr] API key validation failed:', e.message);
-				throw e;
-			}
-		}
-	}, []);
-
-	/**
-	 * Configure Jellyseerr via Moonfin server plugin
-	 * @param {string} jellyfinServer - Jellyfin server URL
-	 * @param {string} token - Jellyfin access token
-	 * @returns {Promise<Object>} - Status from Moonfin plugin
-	 */
-	const configureWithMoonfin = useCallback(async (jellyfinServer, token) => {
-		// Set up Moonfin proxy
-		jellyseerrApi.setMoonfinConfig(jellyfinServer, token);
-		jellyseerrApi.setMoonfinMode(true);
-		// Set a basic config so the rest of the API module works
-		jellyseerrApi.setConfig(jellyfinServer, 'moonfin-user');
-
-		// Check status
-		const status = await jellyseerrApi.getMoonfinStatus();
-		console.log('[Jellyseerr] Moonfin status:', status);
-
-		if (status?.authenticated) {
-			const userData = {
-				displayName: status.displayName,
-				jellyseerrUserId: status.jellyseerrUserId,
-				permissions: status.permissions || 0xFFFFFFFF
-			};
-			setUser(userData);
-			setIsAuthenticated(true);
-			setServerUrl(status.url || jellyfinServer);
-			setIsEnabled(true);
-			setIsMoonfin(true);
-
-			await saveToStorage('jellyseerr', {
-				moonfin: true,
-				url: status.url || jellyfinServer,
-				jellyfinServerUrl: jellyfinServer,
-				jellyfinAccessToken: token,
-				userId: status.jellyseerrUserId
-			});
-
-			return {authenticated: true, user: userData, url: status.url};
-		} else {
-			// Not authenticated yet — the user may need to login via Moonfin
-			setServerUrl(jellyfinServer);
-			setIsEnabled(true);
-			setIsMoonfin(true);
-
-			await saveToStorage('jellyseerr', {
-				moonfin: true,
-				jellyfinServerUrl: jellyfinServer,
-				jellyfinAccessToken: token
-			});
-
-			return {authenticated: false, url: status?.url};
-		}
-	}, []);
-
-	/**
-	 * Login to Jellyseerr via Moonfin plugin
-	 */
-	const loginWithMoonfin = useCallback(async (username, password) => {
-		await jellyseerrApi.moonfinLogin(username, password);
-
-		// After login, check status to get user info
-		const status = await jellyseerrApi.getMoonfinStatus();
-		if (status?.authenticated) {
-			const userData = {
-				displayName: status.displayName,
-				jellyseerrUserId: status.jellyseerrUserId,
-				permissions: status.permissions || 0xFFFFFFFF
-			};
-			setUser(userData);
-			setIsAuthenticated(true);
-			setServerUrl(status.url);
-
-			// Update storage with new session info
-			const config = await getFromStorage('jellyseerr');
-			await saveToStorage('jellyseerr', {
-				...config,
-				url: status.url,
-				userId: status.jellyseerrUserId
-			});
-
-			return userData;
-		}
-
-		throw new Error('Login succeeded but session not established');
+		await saveToStorage('jellyseerr', {url, userId, apiKey});
 	}, []);
 
 	const login = useCallback(async (email, password) => {
@@ -203,33 +59,20 @@ export const JellyseerrProvider = ({children}) => {
 	}, []);
 
 	const logout = useCallback(async () => {
-		if (isMoonfin) {
-			try {
-				await jellyseerrApi.moonfinLogout();
-			} catch (e) {
-				console.log('[Jellyseerr] Moonfin logout error:', e.message);
-			}
-		} else {
-			await jellyseerrApi.logout();
-		}
+		await jellyseerrApi.logout();
 		setUser(null);
 		setIsAuthenticated(false);
-	}, [isMoonfin]);
+	}, []);
 
 	const disable = useCallback(async () => {
-		if (!isMoonfin) {
-			await jellyseerrApi.clearCookies();
-		}
+		await jellyseerrApi.clearCookies();
 		await removeFromStorage('jellyseerr');
 		jellyseerrApi.setConfig(null, null, null);
-		jellyseerrApi.setMoonfinMode(false);
-		jellyseerrApi.setMoonfinConfig(null, null);
 		setServerUrl(null);
 		setUser(null);
 		setIsEnabled(false);
 		setIsAuthenticated(false);
-		setIsMoonfin(false);
-	}, [isMoonfin]);
+	}, []);
 
 	return (
 		<JellyseerrContext.Provider value={{
@@ -238,13 +81,10 @@ export const JellyseerrProvider = ({children}) => {
 			isLoading,
 			user,
 			serverUrl,
-			isMoonfin,
 			api: jellyseerrApi,
 			configure,
-			configureWithMoonfin,
 			login,
 			loginWithJellyfin,
-			loginWithMoonfin,
 			logout,
 			disable
 		}}>

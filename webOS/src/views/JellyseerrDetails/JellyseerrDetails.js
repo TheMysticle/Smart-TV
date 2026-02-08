@@ -10,15 +10,6 @@ import {useJellyseerr} from '../../context/JellyseerrContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import css from './JellyseerrDetails.module.less';
 
-const safeFocus = (spotlightId) => {
-	try {
-		return Spotlight.focus(spotlightId);
-	} catch (e) {
-		console.warn('[safeFocus] Failed to focus:', spotlightId, e.message);
-		return false;
-	}
-};
-
 const SpottableDiv = Spottable('div');
 const RowContainer = SpotlightContainerDecorator({
 	enterTo: 'last-focused'
@@ -638,7 +629,7 @@ const CancelRequestPopup = memo(({open, pendingRequests, title, onConfirm, onClo
 });
 
 const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectPerson, onSelectKeyword, onBack}) => {
-	const {isAuthenticated, user: contextUser} = useJellyseerr();
+	const {isAuthenticated} = useJellyseerr();
 	const [details, setDetails] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [requesting, setRequesting] = useState(false);
@@ -703,10 +694,7 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 
 				setDetails(data);
 
-				// Use context user permissions (Moonfin) or API user permissions
-				if (contextUser?.permissions != null) {
-					setUserPermissions(contextUser.permissions);
-				} else if (userData?.permissions != null) {
+				if (userData?.permissions != null) {
 					setUserPermissions(userData.permissions);
 				}
 
@@ -753,13 +741,11 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 		};
 
 		loadDetails();
-	}, [mediaId, mediaType, contextUser]);
+	}, [mediaId, mediaType]);
 
 	useEffect(() => {
 		if (!loading && details) {
-			window.requestAnimationFrame(() => {
-				safeFocus('action-buttons');
-			});
+			Spotlight.focus('action-buttons');
 		}
 	}, [loading, details]);
 
@@ -992,11 +978,11 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 		if (e.keyCode === 40) {
 			e.preventDefault();
 			e.stopPropagation();
-			const castFocused = safeFocus('cast-section');
+			const castFocused = Spotlight.focus('cast-section');
 			if (!castFocused) {
-				const recFocused = safeFocus('details-row-0');
+				const recFocused = Spotlight.focus('details-row-0');
 				if (!recFocused) {
-					safeFocus('details-row-1');
+					Spotlight.focus('details-row-1');
 				}
 			}
 		}
@@ -1004,17 +990,17 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 
 	const handleRowNavigateUp = useCallback((fromRowIndex) => {
 		if (fromRowIndex === 0) {
-			const castFocused = safeFocus('cast-section');
+			const castFocused = Spotlight.focus('cast-section');
 			if (!castFocused) {
-				safeFocus('action-buttons');
+				Spotlight.focus('action-buttons');
 			}
 		} else {
 			const targetIndex = fromRowIndex - 1;
-			const focused = safeFocus(`details-row-${targetIndex}`);
+			const focused = Spotlight.focus(`details-row-${targetIndex}`);
 			if (!focused) {
-				const castFocused = safeFocus('cast-section');
+				const castFocused = Spotlight.focus('cast-section');
 				if (!castFocused) {
-					safeFocus('action-buttons');
+					Spotlight.focus('action-buttons');
 				}
 			}
 		}
@@ -1022,11 +1008,11 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 
 	const handleRowNavigateDown = useCallback((fromRowIndex) => {
 		const targetIndex = fromRowIndex + 1;
-		const focused = safeFocus(`details-row-${targetIndex}`);
+		const focused = Spotlight.focus(`details-row-${targetIndex}`);
 		if (!focused) {
-			const keywordsFocused = safeFocus('keywords-section');
+			const keywordsFocused = Spotlight.focus('keywords-section');
 			if (!keywordsFocused) {
-				safeFocus('seasons-section');
+				Spotlight.focus('seasons-section');
 			}
 		}
 	}, []);
@@ -1035,15 +1021,15 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 		if (e.keyCode === 38) {
 			e.preventDefault();
 			e.stopPropagation();
-			safeFocus('action-buttons');
+			Spotlight.focus('action-buttons');
 		} else if (e.keyCode === 40) {
 			e.preventDefault();
 			e.stopPropagation();
-			const recFocused = safeFocus('details-row-0');
+			const recFocused = Spotlight.focus('details-row-0');
 			if (!recFocused) {
-				const simFocused = safeFocus('details-row-1');
+				const simFocused = Spotlight.focus('details-row-1');
 				if (!simFocused) {
-					safeFocus('keywords-section');
+					Spotlight.focus('keywords-section');
 				}
 			}
 		}
@@ -1054,13 +1040,13 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onSelectP
 			// Up arrow - navigate to previous section
 			e.preventDefault();
 			e.stopPropagation();
-			const simFocused = safeFocus('details-row-1');
+			const simFocused = Spotlight.focus('details-row-1');
 			if (!simFocused) {
-				const recFocused = safeFocus('details-row-0');
+				const recFocused = Spotlight.focus('details-row-0');
 				if (!recFocused) {
-					const castFocused = safeFocus('cast-section');
+					const castFocused = Spotlight.focus('cast-section');
 					if (!castFocused) {
-						safeFocus('action-buttons');
+						Spotlight.focus('action-buttons');
 					}
 				}
 			}
