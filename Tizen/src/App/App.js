@@ -45,7 +45,7 @@ const JellyseerrPerson = lazy(() => import('../views/JellyseerrPerson'));
 import css from './App.module.less';
 
 const MAX_HISTORY_LENGTH = 10;
-const EXCLUDED_COLLECTION_TYPES = ['playlists', 'books', 'music', 'musicvideos', 'homevideos', 'photos'];
+const EXCLUDED_COLLECTION_TYPES = ['playlists', 'books', 'musicvideos', 'homevideos', 'photos'];
 
 const PanelLoader = () => (
 	<div className={css.panelLoader}>
@@ -99,32 +99,32 @@ const AppContent = (props) => {
 	const detailsItemStackRef = useRef([]);
 	const jellyseerrItemStackRef = useRef([]);
 
-	useEffect(() => {
-		const fetchLibraries = async () => {
-			if (isAuthenticated && api && user) {
-				try {
-					let libs;
-					if (unifiedMode) {
-						libs = await connectionPool.getLibrariesFromAllServers();
-						libs = libs.map(lib => ({
-							...lib,
-							Name: `${lib.Name} (${lib._serverName})`
-						}));
-					} else {
-						const result = await api.getLibraries();
-						libs = result.Items || [];
-					}
-					const filtered = libs.filter(lib => !EXCLUDED_COLLECTION_TYPES.includes(lib.CollectionType?.toLowerCase()));
-					setLibraries(filtered);
-				} catch (err) {
-					console.error('Failed to fetch libraries:', err);
+	const fetchLibraries = useCallback(async () => {
+		if (isAuthenticated && api && user) {
+			try {
+				let libs;
+				if (unifiedMode) {
+					libs = await connectionPool.getLibrariesFromAllServers();
+					libs = libs.map(lib => ({
+						...lib,
+						Name: `${lib.Name} (${lib._serverName})`
+					}));
+				} else {
+					const result = await api.getLibraries();
+					libs = result.Items || [];
 				}
-			} else {
-				setLibraries([]);
+				const filtered = libs.filter(lib => !EXCLUDED_COLLECTION_TYPES.includes(lib.CollectionType?.toLowerCase()));
+				setLibraries(filtered);
+			} catch (err) {
+				console.error('Failed to fetch libraries:', err);
 			}
 		};
 		fetchLibraries();
 	}, [isAuthenticated, api, user, unifiedMode]);
+
+	useEffect(() => {
+		fetchLibraries();
+	}, [fetchLibraries]);
 
 	const {updateInfo, formattedNotes, dismiss: dismissUpdate} = useVersionCheck(isAuthenticated ? 3000 : null);
 
@@ -629,7 +629,7 @@ const AppContent = (props) => {
 					</Panel>
 					<Panel>
 						{panelIndex === PANELS.SETTINGS && (
-							<Settings onBack={handleBack} onLogout={handleSwitchUser} onAddServer={handleAddServer} onAddUser={handleAddUser} />
+							<Settings onBack={handleBack} onLogout={handleSwitchUser} onAddServer={handleAddServer} onAddUser={handleAddUser} onLibrariesChanged={fetchLibraries} />
 						)}
 					</Panel>
 					<Panel>
@@ -639,6 +639,7 @@ const AppContent = (props) => {
 								resume={isResume}
 								initialAudioIndex={playbackOptions?.audioStreamIndex}
 								initialSubtitleIndex={playbackOptions?.subtitleStreamIndex}
+								audioPlaylist={playbackOptions?.audioPlaylist}
 								onEnded={handlePlayerEnd}
 								onBack={handlePlayerEnd}
 								onPlayNext={handlePlayNext}
