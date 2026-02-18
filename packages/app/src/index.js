@@ -3,6 +3,8 @@ import {createRoot, hydrateRoot} from 'react-dom/client';
 
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import {isTizen} from './platform';
+import {registerKeys, ESSENTIAL_KEY_NAMES} from './utils/keys';
 
 // Polyfill Element.prototype.scrollTo for older webOS browsers
 if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
@@ -15,6 +17,10 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
 			this.scrollTop = arguments[1];
 		}
 	};
+}
+
+if (isTizen()) {
+	registerKeys(ESSENTIAL_KEY_NAMES);
 }
 
 const appElement = (<App />);

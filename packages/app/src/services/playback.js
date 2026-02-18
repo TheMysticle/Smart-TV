@@ -1,6 +1,6 @@
 import * as jellyfinApi from './jellyfinApi';
 import {getJellyfinDeviceProfile, getDeviceCapabilities} from './deviceProfile';
-import {getPlayMethod, getMimeType, findCompatibleAudioStreamIndex, getSupportedAudioCodecs} from './webosVideo';
+import {getPlayMethod, getMimeType, findCompatibleAudioStreamIndex, getSupportedAudioCodecs} from './video';
 
 export const PlayMethod = {
 	DirectPlay: 'DirectPlay',

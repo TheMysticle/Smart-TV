@@ -7,7 +7,8 @@ import {useSettings} from '../context/SettingsContext';
 import * as playback from '../services/playback';
 import * as connectionPool from '../services/connectionPool';
 import {isBackKey, KEYS} from '../utils/keys';
-import {getPlatform, isTizen} from '../platform';
+import {getPlatform, isTizen, isWebOS} from '../platform';
+import {cleanupVideoElement, setupVisibilityHandler, setupPlatformLifecycle} from '../services/video';
 import {SettingsProvider} from '../context/SettingsContext';
 import {JellyseerrProvider} from '../context/JellyseerrContext';
 import {useVersionCheck} from '../hooks/useVersionCheck';
@@ -138,7 +139,6 @@ const AppContent = (props) => {
 		screensaverActive
 	);
 
-	// App-wide cleanup function for webOS lifecycle events
 	const performAppCleanup = useCallback(() => {
 		console.log('[App] Performing app cleanup...');
 
@@ -165,7 +165,6 @@ const AppContent = (props) => {
 		console.log('[App] App cleanup complete');
 	}, []);
 
-	// Set up webOS lifecycle event handlers
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
 
@@ -182,7 +181,6 @@ const AppContent = (props) => {
 			}
 		};
 
-		// Handle webOS app visibility changes
 		const handleVisibilityHidden = () => {
 			console.log('[App] App hidden/suspended');
 			const videoElements = document.querySelectorAll('video');
@@ -197,9 +195,8 @@ const AppContent = (props) => {
 			console.log('[App] App visible/resumed');
 		};
 
-		// Handle webOS relaunch (app launched while already running)
-		const handleWebOSRelaunch = (params) => {
-			console.log('[App] webOSRelaunch event received:', params);
+		const handleRelaunch = (params) => {
+			console.log('[App] Platform relaunch event received:', params);
 			performAppCleanup();
 			setPlayingItem(null);
 			setPanelHistory([]);
@@ -212,19 +209,20 @@ const AppContent = (props) => {
 		window.addEventListener('pagehide', handlePageHide);
 
 		const removeVisibilityHandler = setupVisibilityHandler(handleVisibilityHidden, handleVisibilityVisible);
-		const removeWebOSHandler = isWebOS() ? setupWebOSLifecycle(handleWebOSRelaunch) : () => {};
+		const removeLifecycleHandler = setupPlatformLifecycle(handleRelaunch);
 
-		const handleWebOSLaunch = () => {
-			console.log('[App] webOSLaunch event received');
-		};
-		document.addEventListener('webOSLaunch', handleWebOSLaunch);
+		let handlePlatformLaunch;
+		if (isWebOS()) {
+			handlePlatformLaunch = () => console.log('[App] webOSLaunch event received');
+			document.addEventListener('webOSLaunch', handlePlatformLaunch);
+		}
 
 		cleanupHandlersRef.current = () => {
 			window.removeEventListener('beforeunload', handleBeforeUnload);
 			window.removeEventListener('pagehide', handlePageHide);
-			document.removeEventListener('webOSLaunch', handleWebOSLaunch);
+			if (handlePlatformLaunch) document.removeEventListener('webOSLaunch', handlePlatformLaunch);
 			removeVisibilityHandler();
-			removeWebOSHandler();
+			removeLifecycleHandler();
 		};
 
 		return () => {
@@ -289,9 +287,11 @@ const AppContent = (props) => {
 
 				if (panelIndex === PANELS.BROWSE || panelIndex === PANELS.LOGIN) {
 					performAppCleanup();
-					import('@enact/webos/application').then(m => m.platformBack()).catch(() => {
-						if (isTizen() && typeof tizen !== 'undefined') tizen.application.getCurrentApplication().exit();
-					});
+					if (isTizen() && typeof tizen !== 'undefined') {
+						tizen.application.getCurrentApplication().exit();
+					} else {
+						import('@enact/webos/application').then(m => m.platformBack()).catch(() => {});
+					}
 					return;
 				}
 				if (panelIndex === PANELS.PLAYER || panelIndex === PANELS.SETTINGS) {
