@@ -13,9 +13,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const APP_DIR = path.resolve(ROOT, '..', 'app');
 const DIST = path.join(ROOT, 'dist');
 const TIZEN_DIR = path.join(ROOT, 'tizen');
-const RESOURCES_DIR = path.join(ROOT, 'resources');
 
 const args = process.argv.slice(2);
 const isSigned = args.includes('--signed');
@@ -145,11 +145,18 @@ async function main() {
 	// Step 2: Build Enact app
 	log(`Building Enact app (${isDev ? 'development' : 'production'})...`);
 	const packCmd = isDev ? 'npx enact pack' : 'npx enact pack -p';
-	if (!run(packCmd)) {
+	const browserslistConfig = path.join(ROOT, '.browserslistrc');
+	if (!run(packCmd, { cwd: APP_DIR, env: { ...process.env, BROWSERSLIST_CONFIG: browserslistConfig } })) {
 		error('Enact build failed!');
 		process.exit(1);
 	}
 	success('Enact build complete');
+
+	log('Copying build output...');
+	if (fs.existsSync(DIST)) fs.rmSync(DIST, { recursive: true, force: true });
+	fs.mkdirSync(DIST, { recursive: true });
+	copyDir(path.join(APP_DIR, 'dist'), DIST);
+	success('Copied build output');
 	
 	// Step 2.5: Patch index.html to fix ilib XHR file:// issue on Tizen
 	log('Patching index.html for Tizen file:// compatibility...');
@@ -215,14 +222,7 @@ async function main() {
 		success('Copied Smart Hub Preview service');
 	}
 	
-	// Step 4: Copy resources
-	log('Copying resources...');
-	const distResources = path.join(DIST, 'resources');
-	if (!fs.existsSync(distResources)) fs.mkdirSync(distResources, { recursive: true });
-	copyFiles(RESOURCES_DIR, distResources, /\.png$/);
-	success('Copied resource images');
-	
-	// Step 5: Clean up unnecessary files to reduce package size
+	// Step 4: Clean up unnecessary files to reduce package size
 	log('Cleaning up unnecessary files...');
 	
 	// Remove source maps if any

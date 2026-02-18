@@ -8,5 +8,8 @@
 		"build:signed": "node scripts/build-wgt.js --signed",
 		"install-tv": "node scripts/build-wgt.js --install",
 		"install-tv:dev": "node scripts/build-wgt.js --install --dev"
+	},
+	"devDependencies": {
+		"@enact/cli": "^7.2.1"
 	}
 }

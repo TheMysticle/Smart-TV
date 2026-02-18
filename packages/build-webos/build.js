@@ -3,9 +3,11 @@ const {execSync} = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const run = (cmd) => {
+const APP_DIR = path.resolve(__dirname, '..', 'app');
+
+const run = (cmd, options = {}) => {
 	console.log(`> ${cmd}`);
-	execSync(cmd, {stdio: 'inherit'});
+	execSync(cmd, {stdio: 'inherit', ...options});
 };
 
 // Recursively remove a directory (cross-platform alternative to rm -rf)
@@ -27,16 +29,34 @@ const deleteFiles = (basePath, filenames) => {
 	});
 };
 
+const copyDirRecursive = (src, dest) => {
+	fs.mkdirSync(dest, {recursive: true});
+	for (const entry of fs.readdirSync(src, {withFileTypes: true})) {
+		const srcPath = path.join(src, entry.name);
+		const destPath = path.join(dest, entry.name);
+		if (entry.isDirectory()) {
+			copyDirRecursive(srcPath, destPath);
+		} else {
+			fs.copyFileSync(srcPath, destPath);
+		}
+	}
+};
+
 try {
 	console.log(' Building Moonfin for webOS...\n');
 
 	// Clean previous build
 	console.log('Cleaning previous build...');
-	run('npm run clean');
+	run('npx enact clean', {cwd: APP_DIR});
 
 	// Production build with Enact
 	console.log('\n Building with Enact...');
-	run('npx enact pack -p');
+	run('npx enact pack -p', {cwd: APP_DIR});
+
+	// Copy build output
+	console.log('\n Copying build output...');
+	if (fs.existsSync('dist')) fs.rmSync('dist', {recursive: true, force: true});
+	copyDirRecursive(path.join(APP_DIR, 'dist'), 'dist');
 
 	// Copy banner
 	console.log('\n Copying banner...');

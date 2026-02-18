@@ -10,5 +10,9 @@
 		"build:tizen": "cd packages/build-tizen && node scripts/build-wgt.js",
 		"dev:webos": "cd packages/app && npm run serve",
 		"dev:tizen": "cd packages/app && PLATFORM=tizen npm run serve"
+	},
+	"devDependencies": {
+		"@enact/cli": "^7.2.1",
+		"eslint-config-enact-proxy": "^1.0.7"
 	}
 }
