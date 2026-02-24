@@ -932,7 +932,11 @@ const Browse = ({
 		if (trailerContainerRef.current) {
 			const video = trailerContainerRef.current.querySelector('video');
 			if (video) {
-				try { video.pause(); video.src = ''; video.load(); } catch (e) { /* ignore */ }
+				try {
+					video.pause();
+					video.removeAttribute('src');
+					video.load();
+				} catch (e) { /* ignore */ }
 			}
 			trailerContainerRef.current.innerHTML = '';
 		}

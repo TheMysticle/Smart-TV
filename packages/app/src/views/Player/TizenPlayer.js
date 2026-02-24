@@ -26,7 +26,7 @@ import css from './TizenPlayer.module.less';
  * playback. AVPlay renders on a platform multimedia layer BEHIND the web engine;
  * the web layer must be transparent in the video area for the content to show through.
  */
-const Player = ({item, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
+const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
 	const {settings} = useSettings();
 
 	const [isLoading, setIsLoading] = useState(true);
@@ -322,7 +322,8 @@ const Player = ({item, initialAudioIndex, initialSubtitleIndex, onEnded, onBack,
 			avplayReadyRef.current = false;
 
 			try {
-				const startPosition = item.UserData?.PlaybackPositionTicks || 0;
+				const savedPosition = item.UserData?.PlaybackPositionTicks || 0;
+				const startPosition = resume !== false ? savedPosition : 0;
 				const effectiveBitrate = selectedQuality || settings.maxBitrate || undefined;
 				const result = await playback.getPlaybackInfo(item.Id, {
 					startPositionTicks: startPosition,
@@ -607,7 +608,7 @@ const Player = ({item, initialAudioIndex, initialSubtitleIndex, onEnded, onBack,
 			pendingSeekMsRef.current = null;
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [item, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.subtitleMode, settings.skipIntro]);
+	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.subtitleMode, settings.skipIntro]);
 
 	// ==============================
 	// Controls Auto-hide

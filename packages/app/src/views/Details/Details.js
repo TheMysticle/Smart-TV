@@ -391,7 +391,16 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, bac
 	const handleOpenMediaInfo = useCallback(() => setShowMediaInfo(true), []);
 	const handleStopPropagation = useCallback((e) => e.stopPropagation(), []);
 
+	const trailerVideoRef = useRef(null);
+
 	const handleCloseTrailer = useCallback(() => {
+		if (trailerVideoRef.current) {
+			try {
+				trailerVideoRef.current.pause();
+				trailerVideoRef.current.removeAttribute('src');
+				trailerVideoRef.current.load();
+			} catch (e) { /* ignore */ }
+		}
 		setTrailerOverlay(null);
 		setTrailerStreamUrl(null);
 	}, []);
@@ -400,10 +409,9 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, bac
 		if (isBackKey(e)) {
 			e.preventDefault();
 			e.stopPropagation();
-			setTrailerOverlay(null);
-			setTrailerStreamUrl(null);
+			handleCloseTrailer();
 		}
-	}, []);
+	}, [handleCloseTrailer]);
 
 	useEffect(() => {
 		if (!trailerOverlay) {
@@ -1701,6 +1709,7 @@ const handleSectionKeyDown = useCallback((ev) => {
 					<div className={css.trailerIframeWrap} onClick={handleStopPropagation}>
 						{trailerStreamUrl ? (
 							<video
+								ref={trailerVideoRef}
 								className={css.trailerIframe}
 								src={trailerStreamUrl}
 								autoPlay

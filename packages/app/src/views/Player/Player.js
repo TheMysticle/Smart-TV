@@ -1,5 +1,5 @@
 import {getPlatform} from '../../platform';
-import {lazy, Suspense} from 'react';
+import {lazy} from 'react';
 
 const PlatformPlayer = lazy(() =>
 	getPlatform() === 'tizen'
@@ -7,10 +7,6 @@ const PlatformPlayer = lazy(() =>
 		: import('./WebOSPlayer')
 );
 
-const Player = (props) => (
-	<Suspense fallback={null}>
-		<PlatformPlayer {...props} />
-	</Suspense>
-);
+const Player = (props) => <PlatformPlayer {...props} />;
 
 export default Player;

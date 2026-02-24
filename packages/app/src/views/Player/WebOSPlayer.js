@@ -171,6 +171,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 		});
 
 		const loadMedia = async () => {
+			isCleaningUpRef.current = false;
 			setIsLoading(true);
 			setError(null);
 
@@ -378,13 +379,14 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			}
 
 			// Quick sync release — handleBack/handleEnded already did the
-			// full async cleanup with SDR reset.  This is only a safety net
-			// for unmount paths that bypass those handlers (settings change, etc.).
+			// full async cleanup.  This is only a safety net for unmount
+			// paths that bypass those handlers (settings change, etc.).
 			isCleaningUpRef.current = true;
 			if (videoElement) {
 				try { videoElement.pause(); } catch (e) { /* ignore */ }
 				videoElement.removeAttribute('src');
-				videoElement.load();
+				// Do NOT call load() — corrupts Chrome 53 hardware decoder.
+				// DOM removal on unmount releases the decoder naturally.
 			}
 		};
 	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, initialAudioIndex, initialSubtitleIndex]);
@@ -485,12 +487,9 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 		video.setAttribute('playsinline', '');
 		video.setAttribute('preload', 'auto');
 
-		const isHls = mediaUrl.includes('.m3u8') || mimeType === 'application/x-mpegURL';
-
 		const setSourceAndPlay = () => {
 			console.log('[Player] Setting video source now');
 			video.src = mediaUrl;
-			video.load();
 
 			// Start a playback timeout — if no timeupdate fires within 8 seconds,
 			// synthetically trigger the error handler to fall back to transcoding.
@@ -515,17 +514,20 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				}
 			}, 8000);
 
-			video.play().then(() => {
-				console.log('[Player] play() promise resolved');
-			}).catch(err => {
-				// "interrupted by a new load request" is normal during source
-				// transitions (e.g. DirectPlay → Transcode fallback).
-				if (err.name === 'AbortError') {
-					console.log('[Player] play() aborted (source transition) — expected');
-				} else {
-					console.error('[Player] play() promise rejected:', err);
-				}
-			});
+			const playResult = video.play();
+			if (playResult && typeof playResult.then === 'function') {
+				playResult.then(() => {
+					console.log('[Player] play() promise resolved');
+				}).catch(err => {
+					// "interrupted by a new load request" is normal during source
+					// transitions (e.g. DirectPlay → Transcode fallback).
+					if (err.name === 'AbortError') {
+						console.log('[Player] play() aborted (source transition) — expected');
+					} else {
+						console.error('[Player] play() promise rejected:', err);
+					}
+				});
+			}
 		};
 
 		setSourceAndPlay();
@@ -1202,36 +1204,13 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 		});
 	}, [focusRow, controlsVisible]);
 
-	if (isLoading) {
-		return (
-			<div className={css.container}>
-				<div className={css.loadingIndicator}>
-					<div className={css.spinner} />
-					<p>Loading...</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (error) {
-		return (
-			<div className={css.container}>
-				<div className={css.error}>
-					<h2>Playback Error</h2>
-					<p>{error}</p>
-					<Button onClick={onBack}>Go Back</Button>
-				</div>
-			</div>
-		);
-	}
-
 	return (
-		<div className={css.container} onClick={showControls}>
-			{/* Video/Audio Element - Hidden visually for audio mode */}
+		<div className={css.container} onClick={!isLoading && !error ? showControls : undefined}>
+			{/* Video element always in DOM — webOS 4 needs the element stable before setting src */}
 			<video
 				ref={videoRef}
 				className={css.videoPlayer}
-				style={isAudioMode ? {opacity: 0, pointerEvents: 'none'} : undefined}
+				style={isLoading || isAudioMode ? {opacity: 0, pointerEvents: 'none'} : undefined}
 				autoPlay
 				onLoadedMetadata={handleLoadedMetadata}
 				onPlay={handlePlay}
@@ -1243,8 +1222,23 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				onError={handleError}
 			/>
 
+			{isLoading && (
+				<div className={css.loadingIndicator}>
+					<div className={css.spinner} />
+					<p>Loading...</p>
+				</div>
+			)}
+
+			{error && (
+				<div className={css.error}>
+					<h2>Playback Error</h2>
+					<p>{error}</p>
+					<Button onClick={onBack}>Go Back</Button>
+				</div>
+			)}
+
 			{/* Audio Mode: Album Art + Info */}
-			{isAudioMode && (
+			{!isLoading && !error && isAudioMode && (
 				<div className={css.audioModeBackground}>
 					<div className={css.audioModeContent}>
 						<div className={css.audioAlbumArt}>
@@ -1278,7 +1272,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			)}
 
 			{/* Custom Subtitle Overlay - webOS doesn't support native <track> elements */}
-			{currentSubtitleText && !isAudioMode && (
+			{!isLoading && !error && currentSubtitleText && !isAudioMode && (
 				<div
 					className={css.subtitleOverlay}
 					style={{
@@ -1310,24 +1304,24 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			)}
 
 			{/* Video Dimmer - not needed for audio */}
-			{!isAudioMode && <div className={`${css.videoDimmer} ${controlsVisible ? css.visible : ''}`} />}
+			{!isLoading && !error && !isAudioMode && <div className={`${css.videoDimmer} ${controlsVisible ? css.visible : ''}`} />}
 
 			{/* Buffering Indicator */}
-			{isBuffering && (
+			{!isLoading && isBuffering && (
 				<div className={css.bufferingIndicator}>
 					<div className={css.spinner} />
 				</div>
 			)}
 
 			{/* Playback Speed Indicator */}
-			{playbackRate !== 1 && (
+			{!isLoading && !error && playbackRate !== 1 && (
 				<div className={css.playbackIndicators}>
 					<div className={css.speedIndicator}>{playbackRate}x</div>
 				</div>
 			)}
 
 			{/* Next Episode Overlay */}
-			{(showSkipCredits || showNextEpisode) && nextEpisode && !isAudioMode && !activeModal && !controlsVisible && (
+			{!isLoading && !error && (showSkipCredits || showNextEpisode) && nextEpisode && !isAudioMode && !activeModal && !controlsVisible && (
 				<NextEpisodeContainer className={css.nextEpisodeOverlay} spotlightRestrict="self-only">
 					<div className={css.nextEpisodeCard}>
 						<div className={css.nextThumbnail}>
@@ -1375,7 +1369,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				</NextEpisodeContainer>
 			)}
 
-			<PlayerControls
+			{!isLoading && !error && <PlayerControls
 				css={css}
 				controlsVisible={controlsVisible}
 				activeModal={activeModal}
@@ -1448,7 +1442,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 						</div>
 					) : null
 				)}
-			/>
+			/>}
 		</div>
 	);
 };
