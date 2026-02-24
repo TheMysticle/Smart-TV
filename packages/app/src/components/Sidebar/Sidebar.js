@@ -1,6 +1,6 @@
-import {memo, useCallback, useState, useEffect} from 'react';
+import {memo, useCallback, useState, useEffect, useRef} from 'react';
 import Spottable from '@enact/spotlight/Spottable';
-import SpotlightContainerDecorator from '@enact/spotlight/SpotlightContainerDecorator';
+import SpotlightContainerDecorator, {spotlightDefaultClass} from '@enact/spotlight/SpotlightContainerDecorator';
 import Spotlight from '@enact/spotlight';
 import {useAuth} from '../../context/AuthContext';
 import {useSettings} from '../../context/SettingsContext';
@@ -12,7 +12,7 @@ import {KEYS} from '../../utils/keys';
 import css from './Sidebar.module.less';
 
 const SidebarContainer = SpotlightContainerDecorator({
-	enterTo: 'last-focused',
+	enterTo: 'default-element',
 	preserveId: true
 }, 'nav');
 
@@ -41,6 +41,7 @@ const Sidebar = ({
 	const [isHovered, setIsHovered] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
 	const [librariesFocused, setLibrariesFocused] = useState(false);
+	const blurCheckRef = useRef(null);
 
 	const expanded = isHovered || isFocused;
 	const librariesExpanded = expanded && librariesFocused;
@@ -98,12 +99,13 @@ const Sidebar = ({
 
 	const handleSidebarBlur = useCallback((e) => {
 		const container = e.currentTarget;
-		const relatedTarget = e.relatedTarget;
-		if (relatedTarget && container.contains(relatedTarget)) {
-			return;
-		}
-		setIsFocused(false);
-		setLibrariesFocused(false);
+		window.cancelAnimationFrame(blurCheckRef.current);
+		blurCheckRef.current = window.requestAnimationFrame(() => {
+			if (!container.contains(document.activeElement)) {
+				setIsFocused(false);
+				setLibrariesFocused(false);
+			}
+		});
 	}, []);
 
 	const handleLibrariesFocus = useCallback(() => {
@@ -112,11 +114,29 @@ const Sidebar = ({
 
 	const handleLibrariesBlur = useCallback((e) => {
 		const container = e.currentTarget;
-		const relatedTarget = e.relatedTarget;
-		if (relatedTarget && container.contains(relatedTarget)) {
-			return;
-		}
-		setLibrariesFocused(false);
+		window.requestAnimationFrame(() => {
+			if (!container.contains(document.activeElement)) {
+				setLibrariesFocused(false);
+			}
+		});
+	}, []);
+
+	useEffect(() => {
+		if (!isFocused) return;
+		const onGlobalFocus = () => {
+			const sidebar = document.querySelector('[data-spotlight-id="navbar"]');
+			if (!sidebar || !sidebar.contains(document.activeElement)) {
+				setIsFocused(false);
+				setLibrariesFocused(false);
+			}
+		};
+		document.addEventListener('focusin', onGlobalFocus);
+		return () => document.removeEventListener('focusin', onGlobalFocus);
+	}, [isFocused]);
+
+	// Cleanup rAF on unmount
+	useEffect(() => {
+		return () => window.cancelAnimationFrame(blurCheckRef.current);
 	}, []);
 
 	const handleNavKeyDown = useCallback((e) => {
@@ -198,7 +218,7 @@ const Sidebar = ({
 
 			<div className={css.navSection}>
 				<SpottableButton
-					className={css.sidebarItem}
+					className={`${css.sidebarItem} ${spotlightDefaultClass}`}
 					onClick={onHome}
 					spotlightId="navbar-home"
 				>

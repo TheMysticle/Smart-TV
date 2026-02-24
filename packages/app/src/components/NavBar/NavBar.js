@@ -12,7 +12,7 @@ import {KEYS} from '../../utils/keys';
 import css from './NavBar.module.less';
 
 const NavContainer = SpotlightContainerDecorator({
-	enterTo: 'last-focused',
+	enterTo: 'default-element',
 	defaultElement: '.spottable-default',
 	preserveId: true,
 	navigationDisabled: (dir, spotlightId) =>
@@ -144,14 +144,11 @@ const NavBar = ({
 
 	const handleLibrariesBlur = useCallback((e) => {
 		const container = e.currentTarget;
-		const relatedTarget = e.relatedTarget;
-
-		if (relatedTarget && container.contains(relatedTarget)) {
-			return;
-		}
 
 		librariesTimeoutRef.current = setTimeout(() => {
-			setLibrariesExpanded(false);
+			if (!container.contains(document.activeElement)) {
+				setLibrariesExpanded(false);
+			}
 		}, 100);
 	}, []);
 
