@@ -268,7 +268,8 @@ const Browse = ({
 	const handleNavigateUp = useCallback((fromRowIndex) => {
 		if (fromRowIndex === 0) {
 			if (settings.showFeaturedBar !== false) {
-				Spotlight.focus('featured-banner');
+				setBrowseMode('featured');
+				setTimeout(() => Spotlight.focus('featured-banner'), 50);
 			} else if (settings.navbarPosition !== 'left') {
 				Spotlight.focus('navbar-home');
 			}
@@ -775,14 +776,13 @@ const Browse = ({
 			itemForBackdrop = focusedItem;
 			backdropId = getBackdropId(focusedItem);
 		} else {
-			itemForBackdrop = featuredItems[currentFeaturedIndex];
-			backdropId = getBackdropId(itemForBackdrop);
+			return;
 		}
 
 		if (backdropId) {
 			const itemUrl = getItemServerUrl(itemForBackdrop);
 			const url = getImageUrl(itemUrl, backdropId, 'Backdrop', {maxWidth: 1280, quality: 80});
-			if (pendingBackdropRef.current === url) return;
+			if (pendingBackdropRef.current === url || url === backdropUrl) return;
 
 			if (backdropTimeoutRef.current) {
 				clearTimeout(backdropTimeoutRef.current);
@@ -800,6 +800,8 @@ const Browse = ({
 		return () => {
 			if (backdropTimeoutRef.current) {
 				clearTimeout(backdropTimeoutRef.current);
+				backdropTimeoutRef.current = null;
+				pendingBackdropRef.current = null;
 			}
 		};
 	}, [focusedItem, browseMode, backdropUrl, crossFadeBackdrop, currentFeaturedIndex, featuredItems, getItemServerUrl]);
@@ -853,6 +855,7 @@ const Browse = ({
 		} else if (e.keyCode === KEYS.DOWN) {
 			e.preventDefault();
 			e.stopPropagation();
+			setFeaturedFocused(false);
 			setBrowseMode('rows');
 			setTimeout(() => {
 				const contentRows = document.querySelector('[data-element="content-rows"]');
@@ -872,6 +875,7 @@ const Browse = ({
 		if (browseMode !== 'rows') {
 			setBrowseMode('rows');
 		}
+		setFeaturedFocused(false);
 		if (typeof rowIndex === 'number') {
 			lastFocusedRowRef.current = rowIndex;
 		}
@@ -1088,43 +1092,43 @@ const Browse = ({
 
 	return (
 		<div className={css.page}>
-			<div className={css.globalBackdrop}>
-				{prevBackdropUrl && (
-					<img
-						className={css.globalBackdropImage}
-						src={prevBackdropUrl}
-						alt=""
-						style={{
-							filter: settings.backdropBlurHome > 0
-								? `blur(${settings.backdropBlurHome}px)`
-								: 'none',
-							opacity: prevBackdropOpacity,
-							transition: 'none'
-						}}
-					/>
-				)}
-
-				{backdropUrl && (
-					<img
-						className={css.globalBackdropImage}
-						src={backdropUrl}
-						alt=""
-						style={{
-							filter: settings.backdropBlurHome > 0
-								? `blur(${settings.backdropBlurHome}px)`
-								: 'none',
-							opacity: backdropOpacity,
-							transition: 'none'
-						}}
-					/>
-				)}
-				<div className={css.globalBackdropOverlay} />
-			</div>
-
 			<div className={`${css.mainContent} ${settings.navbarPosition === 'left' ? css.sidebarOffset : ''}`} ref={mainContentRef}>
-				{currentFeatured && settings.showFeaturedBar !== false && (
+				<div className={css.globalBackdrop}>
+					{prevBackdropUrl && (
+						<img
+							className={css.globalBackdropImage}
+							src={prevBackdropUrl}
+							alt=""
+							style={{
+								filter: settings.backdropBlurHome > 0
+									? `blur(${settings.backdropBlurHome}px)`
+									: 'none',
+								opacity: prevBackdropOpacity,
+								transition: 'none'
+							}}
+						/>
+					)}
+
+					{backdropUrl && (
+						<img
+							className={css.globalBackdropImage}
+							src={backdropUrl}
+							alt=""
+							style={{
+								filter: settings.backdropBlurHome > 0
+									? `blur(${settings.backdropBlurHome}px)`
+									: 'none',
+								opacity: backdropOpacity,
+								transition: 'none'
+							}}
+						/>
+					)}
+					<div className={css.globalBackdropOverlay} />
+				</div>
+
+				{currentFeatured && settings.showFeaturedBar !== false && browseMode === 'featured' && (
 					<div
-						className={`${css.featuredBanner} ${browseMode === 'rows' ? css.featuredHidden : ''}`}
+						className={css.featuredBanner}
 					>
 						<SpottableDiv
 							className={`${css.featuredInner} ${trailerActive ? css.trailerActive : ''}`}
