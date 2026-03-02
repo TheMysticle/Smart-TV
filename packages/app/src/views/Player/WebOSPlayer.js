@@ -481,6 +481,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			destroyHlsPlayer();
 			if (videoElement) {
 				try { videoElement.pause(); } catch (e) { /* ignore */ }
+				while (videoElement.firstChild) videoElement.removeChild(videoElement.firstChild);
 				videoElement.src = '';
 				videoElement.removeAttribute('src');
 				if (videoElement.srcObject) {
@@ -520,6 +521,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			const video = videoRef.current;
 			if (video) {
 				try { video.pause(); } catch (e) { /* ignore */ }
+				while (video.firstChild) video.removeChild(video.firstChild);
 				video.src = '';
 				video.removeAttribute('src');
 			}
@@ -638,6 +640,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			const useHlsJs = isHls && !nativeHlsOk && Hls.isSupported();
 			console.log('[Player] Source type:', { isHls, mimeType, autoplay: video.autoplay, webosVersion, nativeHlsOk, useHlsJs, forceHlsJs: forceHlsJsRef.current });
 
+			while (video.firstChild) video.removeChild(video.firstChild);
 			video.removeAttribute('src');
 			video.load();
 
@@ -727,7 +730,11 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				hls.loadSource(srcUrl);
 			} else {
 				destroyHlsPlayer();
-				video.src = srcUrl;
+				// <source> element provides DV codec hints to Starfish via type attribute
+				const sourceEl = document.createElement('source');
+				sourceEl.src = srcUrl;
+				sourceEl.type = mimeType;
+				video.appendChild(sourceEl);
 				video.load();
 			}
 

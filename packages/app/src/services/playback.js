@@ -454,6 +454,18 @@ export const getPlaybackInfo = async (itemId, options = {}) => {
 		mimeType = getMimeType(mediaSource.Container);
 	}
 
+	// Starfish needs a DV codec in <source type="..."> to activate the DV decoder
+	if (playMethod !== PlayMethod.Transcode && !isAudio && videoStream?.VideoRangeType) {
+		const rangeType = videoStream.VideoRangeType.toUpperCase();
+		if (rangeType.includes('DOVI')) {
+			// Profile 8 (dvh1): cross-compatible — has HDR10/HLG/SDR base layer
+			// Profile 5 (dvhe): pure DV — no backward-compatible base layer
+			const dvCodec = rangeType === 'DOVI' ? 'dvhe.05' : 'dvh1.08';
+			mimeType = mimeType + '; codecs="' + dvCodec + '"';
+			console.log('[playback] Enhanced MIME type with DV codec:', mimeType);
+		}
+	}
+
 	return {
 		url,
 		playSessionId: playbackInfo.PlaySessionId,
