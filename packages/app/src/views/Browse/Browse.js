@@ -773,11 +773,14 @@ const Browse = ({
 		if (browseMode === 'featured') {
 			itemForBackdrop = featuredItems[currentFeaturedIndex];
 			backdropId = getBackdropId(itemForBackdrop);
-		} else if (focusedItem && !isLegacy) {
-			// Skip row-level backdrop transitions on legacy devices (webOS 2 / Tizen 2.4)
+		} else if (focusedItem && !isLegacy && settings.showHomeBackdrop !== false) {
 			itemForBackdrop = focusedItem;
 			backdropId = getBackdropId(focusedItem);
 		} else {
+			if (backdropUrl) {
+				setBackdropUrl('');
+				setPrevBackdropUrl(null);
+			}
 			return;
 		}
 

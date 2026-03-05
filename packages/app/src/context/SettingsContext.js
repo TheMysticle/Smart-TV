@@ -39,6 +39,7 @@ const defaultSettings = {
 	showFavoritesButton: true,
 	showLibrariesInToolbar: true,
 	mergeContinueWatchingNextUp: false,
+	showHomeBackdrop: true,
 	backdropBlurHome: 20,
 	backdropBlurDetail: 20,
 	uiOpacity: 85,

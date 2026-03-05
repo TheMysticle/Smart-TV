@@ -870,6 +870,7 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 			<h1>Display Settings</h1>
 			<div className={css.settingsGroup}>
 				<h2>Backdrop</h2>
+				{renderToggleItem('Home Row Backdrops', 'Show background art when browsing rows on the home screen', 'showHomeBackdrop')}
 				{renderSettingItem('Home Backdrop Blur', 'Amount of blur on home screen backdrop',
 					getLabel(BLUR_OPTIONS, settings.backdropBlurHome, 'Medium'),
 					() => openOptionDialog('Home Backdrop Blur', BLUR_OPTIONS, 'backdropBlurHome'),
