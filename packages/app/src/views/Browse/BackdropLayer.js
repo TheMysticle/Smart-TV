@@ -1,121 +1,79 @@
-import {useState, useEffect, useCallback, useRef, memo} from 'react';
+import {useEffect, useRef, memo} from 'react';
 import css from './Browse.module.less';
 
 const BACKDROP_DEBOUNCE_MS = 500;
 
 const BackdropLayer = memo(({targetUrl, blurAmount}) => {
-	const [currentUrl, setCurrentUrl] = useState('');
-	const [prevUrl, setPrevUrl] = useState(null);
-	const [currentOpacity, setCurrentOpacity] = useState(1);
-	const [prevOpacity, setPrevOpacity] = useState(0);
-
-	const timeoutRef = useRef(null);
-	const fadeIntervalRef = useRef(null);
-	const pendingUrlRef = useRef(null);
+	const layerARef = useRef(null);
+	const layerBRef = useRef(null);
+	const activeLayerRef = useRef('a');
 	const currentUrlRef = useRef('');
+	const timeoutRef = useRef(null);
 
 	useEffect(() => {
 		return () => {
 			if (timeoutRef.current) clearTimeout(timeoutRef.current);
-			if (fadeIntervalRef.current) clearTimeout(fadeIntervalRef.current);
 		};
-	}, []);
-
-	const crossFade = useCallback(() => {
-		setCurrentOpacity(0);
-		setPrevOpacity(1);
-
-		window.requestAnimationFrame(() => {
-			setCurrentOpacity(1);
-			setPrevOpacity(0);
-		});
-
-		if (fadeIntervalRef.current) {
-			clearTimeout(fadeIntervalRef.current);
-		}
-		fadeIntervalRef.current = setTimeout(() => {
-			setPrevUrl(null);
-			fadeIntervalRef.current = null;
-		}, 500);
 	}, []);
 
 	useEffect(() => {
 		if (!targetUrl) {
 			if (currentUrlRef.current) {
-				setCurrentUrl('');
-				setPrevUrl(null);
 				currentUrlRef.current = '';
+				if (layerARef.current) layerARef.current.style.opacity = '0';
+				if (layerBRef.current) layerBRef.current.style.opacity = '0';
 			}
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
 				timeoutRef.current = null;
-				pendingUrlRef.current = null;
 			}
 			return;
 		}
 
-		if (pendingUrlRef.current === targetUrl || targetUrl === currentUrlRef.current) return;
+		if (targetUrl === currentUrlRef.current) return;
 
-		if (timeoutRef.current) {
-			clearTimeout(timeoutRef.current);
-		}
-		pendingUrlRef.current = targetUrl;
+		if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
 		timeoutRef.current = setTimeout(() => {
-			const nextUrl = pendingUrlRef.current;
 			const img = new window.Image();
 			const apply = () => {
-				window.requestAnimationFrame(() => {
-					setPrevUrl(currentUrlRef.current);
-					setCurrentUrl(nextUrl);
-					currentUrlRef.current = nextUrl;
-					crossFade();
-				});
+				const isA = activeLayerRef.current === 'a';
+				const incoming = isA ? layerBRef.current : layerARef.current;
+				const outgoing = isA ? layerARef.current : layerBRef.current;
+				if (!incoming || !outgoing) return;
+
+				incoming.style.transition = 'none';
+				incoming.style.opacity = '0';
+				incoming.style.backgroundImage = `url(${targetUrl})`;
+
+				incoming.offsetHeight; // eslint-disable-line no-unused-expressions
+				incoming.style.transition = '';
+				incoming.style.opacity = '1';
+				outgoing.style.opacity = '0';
+
+				activeLayerRef.current = isA ? 'b' : 'a';
+				currentUrlRef.current = targetUrl;
 			};
 			img.onload = apply;
 			img.onerror = apply;
-			img.src = nextUrl;
+			img.src = targetUrl;
 		}, BACKDROP_DEBOUNCE_MS);
+	}, [targetUrl]);
 
-		return () => {
-			if (timeoutRef.current) {
-				clearTimeout(timeoutRef.current);
-				timeoutRef.current = null;
-				pendingUrlRef.current = null;
-			}
-		};
-	}, [targetUrl, crossFade]);
-
-	const blurStyle = blurAmount > 0
-		? {WebkitFilter: `blur(${blurAmount}px)`, filter: `blur(${blurAmount}px)`}
-		: {WebkitFilter: 'none', filter: 'none'};
+	const blurFilter = blurAmount > 0 ? `blur(${blurAmount}px)` : 'none';
 
 	return (
 		<div className={css.globalBackdrop}>
-			{prevUrl && (
-				<img
-					className={css.globalBackdropImage}
-					src={prevUrl}
-					alt=""
-					style={{
-						...blurStyle,
-						opacity: prevOpacity,
-						transition: 'opacity 0.45s ease'
-					}}
-				/>
-			)}
-
-			{currentUrl && (
-				<img
-					className={css.globalBackdropImage}
-					src={currentUrl}
-					alt=""
-					style={{
-						...blurStyle,
-						opacity: currentOpacity,
-						transition: 'opacity 0.45s ease'
-					}}
-				/>
-			)}
+			<div
+				ref={layerARef}
+				className={css.globalBackdropImage}
+				style={{WebkitFilter: blurFilter, filter: blurFilter}}
+			/>
+			<div
+				ref={layerBRef}
+				className={css.globalBackdropImage}
+				style={{WebkitFilter: blurFilter, filter: blurFilter}}
+			/>
 			<div className={css.globalBackdropOverlay} />
 		</div>
 	);
