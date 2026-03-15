@@ -113,6 +113,7 @@ const Browse = ({
 	const prevFilteredRowsRef = useRef([]);
 	const filteredRowsLengthRef = useRef(0);
 	const rowRefsMap = useRef(new Map());
+	const initialFocusSetRef = useRef(false);
 	const scrollTimeoutRef = useRef(null);
 
 	const registerRowRef = useCallback((rowIndex, element) => {
@@ -387,15 +388,17 @@ const Browse = ({
 	}, [isVisible, isLoading, filteredRows.length, fetchFreshFeaturedItems]);
 
 	useEffect(() => {
-		if (!isLoading) {
+		if (!isLoading && !initialFocusSetRef.current) {
 			setTimeout(() => {
-				if (lastFocusState) {
+				if (lastFocusState || initialFocusSetRef.current) {
 					return;
 				}
 				if (settings.showFeaturedBar !== false && featuredItems.length > 0) {
 					Spotlight.focus('featured-banner');
+					initialFocusSetRef.current = true;
 				} else if (filteredRows.length > 0) {
 					Spotlight.focus('row-0');
+					initialFocusSetRef.current = true;
 				}
 			}, FOCUS_DELAY_MS);
 		}
@@ -406,6 +409,7 @@ const Browse = ({
 		cachedLibraries = null;
 		cachedFeaturedItems = null;
 		cacheTimestamp = null;
+		initialFocusSetRef.current = false;
 	}, [accessToken]);
 
 	useEffect(() => {
