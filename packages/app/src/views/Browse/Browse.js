@@ -115,6 +115,7 @@ const Browse = ({
 	const rowRefsMap = useRef(new Map());
 	const initialFocusSetRef = useRef(false);
 	const scrollTimeoutRef = useRef(null);
+	const contentRowsRef = useRef(null);
 
 	const registerRowRef = useCallback((rowIndex, element) => {
 		if (element) {
@@ -330,14 +331,24 @@ const Browse = ({
 		return result;
 	}, [allRowData, homeRowsConfig, settings.mergeContinueWatchingNextUp]);
 
-	const scrollToRow = useCallback((rowIndex) => {
-		if (scrollTimeoutRef.current) window.cancelAnimationFrame(scrollTimeoutRef.current);
-		scrollTimeoutRef.current = window.requestAnimationFrame(() => {
-			const targetRow = rowRefsMap.current.get(rowIndex);
-			if (targetRow) {
-				targetRow.scrollIntoView({block: 'start', behavior: 'auto'});
-			}
-		});
+	const scrollToRow = useCallback((rowIndex, thenFocus) => {
+		if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+
+		const targetRow = rowRefsMap.current.get(rowIndex);
+		const container = contentRowsRef.current;
+		if (!targetRow || !container) {
+			if (thenFocus) Spotlight.focus('row-' + rowIndex);
+			return;
+		}
+
+		container.scrollTop = targetRow.offsetTop;
+
+		// Focus after scroll so the browser's focus-scroll is a no-op
+		if (thenFocus) {
+			scrollTimeoutRef.current = setTimeout(function () {
+				Spotlight.focus('row-' + rowIndex);
+			}, 0);
+		}
 	}, []);
 
 	const handleNavigateUp = useCallback((fromRowIndex) => {
@@ -351,8 +362,7 @@ const Browse = ({
 			return;
 		}
 		const targetIndex = fromRowIndex - 1;
-		Spotlight.focus(`row-${targetIndex}`);
-		scrollToRow(targetIndex);
+		scrollToRow(targetIndex, true);
 	}, [settings.showFeaturedBar, settings.navbarPosition, scrollToRow]);
 
 	filteredRowsLengthRef.current = filteredRows.length;
@@ -360,8 +370,7 @@ const Browse = ({
 	const handleNavigateDown = useCallback((fromRowIndex) => {
 		const targetIndex = fromRowIndex + 1;
 		if (targetIndex >= filteredRowsLengthRef.current) return;
-		Spotlight.focus(`row-${targetIndex}`);
-		scrollToRow(targetIndex);
+		scrollToRow(targetIndex, true);
 	}, [scrollToRow]);
 
 	useEffect(() => {
@@ -378,8 +387,7 @@ const Browse = ({
 				if (lastFocusState) {
 					const {rowIndex} = lastFocusState;
 					const targetRowIndex = Math.min(rowIndex, filteredRows.length - 1);
-					Spotlight.focus(`row-${targetRowIndex}`);
-					scrollToRow(targetRowIndex);
+					scrollToRow(targetRowIndex, true);
 					lastFocusState = null;
 				}
 			}, FOCUS_DELAY_MS);
@@ -751,12 +759,9 @@ const Browse = ({
 	const handleNavigateDownFromFeatured = useCallback(() => {
 		dispatch({type: 'SET_BROWSE_MODE', mode: 'rows'});
 		setTimeout(() => {
-			const contentRows = document.querySelector('[data-element="content-rows"]');
-			if (contentRows) contentRows.scrollTop = 0;
-			Spotlight.focus('row-0');
-			setTimeout(() => scrollToRow(0), 50);
+			scrollToRow(0, true);
 		}, TRANSITION_DELAY_MS);
-	}, []);
+	}, [scrollToRow]);
 
 	const handleFeaturedFocusCallback = useCallback(() => {
 		dispatch({type: 'SET_BROWSE_MODE', mode: 'featured'});
@@ -821,8 +826,8 @@ const Browse = ({
 				/>
 
 				<div
+					ref={contentRowsRef}
 					className={`${css.contentRows} ${browseMode === 'rows' ? css.rowsMode : ''}`}
-					data-element="content-rows"
 				>
 					{filteredRows.map((row, index) => (
 						<MediaRow
