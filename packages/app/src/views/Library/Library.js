@@ -514,7 +514,7 @@ onFocus={() => {
 			const signal = controller ? controller.signal : undefined;
 			fetchRatings(effectiveServerUrl, item, {signal}).then(r => {
 				if (!(controller && controller.signal.aborted)) {
-					const display = buildDisplayRatings(r, effectiveServerUrl, settings?.mdblistRatingSources);
+					const display = buildDisplayRatings(r, effectiveServerUrl);
 					setFocusedRatings(display);
 				}
 			}).catch(() => {
@@ -596,16 +596,41 @@ const focusedInfoParts = [];
 if (focusedItem) {
 	if (focusedItem.ProductionYear) focusedInfoParts.push(String(focusedItem.ProductionYear));
 	if (focusedItem.OfficialRating) focusedInfoParts.push(focusedItem.OfficialRating);
-	if (focusedItem.RunTimeTicks) focusedInfoParts.push(formatDuration(focusedItem.RunTimeTicks));
-	if (focusedItem.CommunityRating) focusedInfoParts.push('\u2605 ' + focusedItem.CommunityRating.toFixed(1));
+	if (focusedItem.RunTimeTicks > 0 && focusedItem.Type !== 'Series') {
+		const dur = formatDuration(focusedItem.RunTimeTicks);
+		if (dur !== '0m') focusedInfoParts.push(dur);
+	}
 }
 
-const pluginRatingElements = focusedRatings.map((r, i) => (
-	<span key={'r' + i} className={css.pluginRating}>
-		{r.iconUrl && <img className={css.ratingIcon} src={r.iconUrl} alt={r.name} />}
-		<span>{r.formatted}</span>
-	</span>
-));
+const ratingElements = [];
+if (focusedItem && focusedItem.CommunityRating) {
+	ratingElements.push(
+		<span key="community" className={css.pluginRating}>
+			<span className={css.communityStar}>{"\u2605"}</span>
+			<span>{focusedItem.CommunityRating.toFixed(1)}</span>
+		</span>
+	);
+}
+if (focusedItem && !(settings?.mdblistEnabled && settings?.useMoonfinPlugin) && focusedItem.CriticRating != null) {
+	const rtIcon = focusedItem.CriticRating >= 60
+		? effectiveServerUrl + '/Moonfin/Assets/rt-fresh.svg'
+		: effectiveServerUrl + '/Moonfin/Assets/rt-rotten.svg';
+	ratingElements.push(
+		<span key="rt" className={css.pluginRating}>
+			<img className={css.ratingIcon} src={rtIcon} alt="Rotten Tomatoes" />
+			<span>{focusedItem.CriticRating}%</span>
+		</span>
+	);
+}
+for (let i = 0; i < focusedRatings.length; i++) {
+	const r = focusedRatings[i];
+	ratingElements.push(
+		<span key={'r' + i} className={css.pluginRating}>
+			{r.iconUrl && <img className={css.ratingIcon} src={r.iconUrl} alt={r.name} />}
+			<span>{r.formatted}</span>
+		</span>
+	);
+}
 
 return (
 <div className={css.page}>
@@ -654,10 +679,10 @@ return (
 		{focusedInfoParts.map((part, i) => (
 			<span key={i} className={css.metaItem}>{part}</span>
 		))}
-		{pluginRatingElements.length > 0 && focusedInfoParts.length > 0 && (
+		{ratingElements.length > 0 && focusedInfoParts.length > 0 && (
 			<span className={css.metaSeparator} />
 		)}
-		{pluginRatingElements}
+		{ratingElements}
 	</div>
 </div>
 )}

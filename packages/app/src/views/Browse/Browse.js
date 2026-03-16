@@ -384,16 +384,21 @@ const Browse = ({
 			fetchFreshFeaturedItems();
 
 			setTimeout(() => {
-				if (lastFocusState) {
+				if (lastFocusState && lastFocusState.rowIndex > 0) {
 					const {rowIndex} = lastFocusState;
 					const targetRowIndex = Math.min(rowIndex, filteredRows.length - 1);
 					scrollToRow(targetRowIndex, true);
-					lastFocusState = null;
+				} else if (settings.showFeaturedBar !== false && featuredItems.length > 0) {
+					dispatch({type: 'SET_BROWSE_MODE', mode: 'featured'});
+					setTimeout(() => Spotlight.focus('featured-banner'), 50);
+				} else {
+					scrollToRow(0, true);
 				}
+				lastFocusState = null;
 			}, FOCUS_DELAY_MS);
 		}
 		wasVisibleRef.current = isVisible;
-	}, [isVisible, isLoading, filteredRows.length, fetchFreshFeaturedItems]);
+	}, [isVisible, isLoading, filteredRows.length, fetchFreshFeaturedItems, settings.showFeaturedBar, featuredItems.length, scrollToRow]);
 
 	useEffect(() => {
 		if (!isLoading && !initialFocusSetRef.current) {

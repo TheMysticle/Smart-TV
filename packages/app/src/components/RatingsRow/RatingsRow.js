@@ -1,10 +1,13 @@
 import {useState, useEffect, useRef} from 'react';
 import {fetchRatings, buildDisplayRatings, getContentType, getTmdbId} from '../../services/mdblistApi';
-import {useSettings} from '../../context/SettingsContext';
 import css from './RatingsRow.module.less';
 
-const RatingsRow = ({item, serverUrl, compact = false}) => {
-	const {settings} = useSettings();
+const getRtIcon = (serverUrl, score) => {
+	if (score >= 60) return serverUrl + '/Moonfin/Assets/rt-fresh.svg';
+	return serverUrl + '/Moonfin/Assets/rt-rotten.svg';
+};
+
+const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) => {
 	const [displayRatings, setDisplayRatings] = useState([]);
 	const mountedRef = useRef(true);
 	const itemIdRef = useRef(null);
@@ -15,7 +18,7 @@ const RatingsRow = ({item, serverUrl, compact = false}) => {
 	}, []);
 
 	useEffect(() => {
-		if (!item || !serverUrl) {
+		if (!pluginEnabled || !item || !serverUrl) {
 			setDisplayRatings([]);
 			return;
 		}
@@ -33,18 +36,35 @@ const RatingsRow = ({item, serverUrl, compact = false}) => {
 
 		fetchRatings(serverUrl, item).then(ratings => {
 			if (mountedRef.current && itemIdRef.current === currentItemId) {
-				const sources = settings.mdblistRatingSources || ['imdb', 'tmdb', 'tomatoes', 'metacritic'];
-				const display = buildDisplayRatings(ratings, serverUrl, sources);
+				const display = buildDisplayRatings(ratings, serverUrl);
 				setDisplayRatings(display);
 			}
 		});
-	}, [item, serverUrl, settings.mdblistRatingSources]);
+	}, [item, serverUrl, pluginEnabled]);
 
-	if (displayRatings.length === 0) return null;
+	const communityRating = item && item.CommunityRating ? item.CommunityRating.toFixed(1) : null;
+	const hasContent = communityRating || displayRatings.length > 0 || (!pluginEnabled && item && item.CriticRating);
+	if (!hasContent) return null;
 
 	if (compact) {
 		return (
 			<div className={css.ratingsRowCompact}>
+				{communityRating && (
+					<span className={css.ratingCompact}>
+						<span className={css.communityStarCompact}>{"\u2605"}</span>
+						<span className={css.ratingValueCompact}>{communityRating}</span>
+					</span>
+				)}
+				{!pluginEnabled && item.CriticRating != null && (
+					<span className={css.ratingCompact}>
+						<img
+							className={css.ratingIconCompact}
+							src={getRtIcon(serverUrl, item.CriticRating)}
+							alt="Rotten Tomatoes"
+						/>
+						<span className={css.ratingValueCompact}>{item.CriticRating}%</span>
+					</span>
+				)}
 				{displayRatings.map(r => (
 					<span key={r.source} className={css.ratingCompact}>
 						<img
@@ -62,6 +82,28 @@ const RatingsRow = ({item, serverUrl, compact = false}) => {
 
 	return (
 		<div className={css.ratingsRow}>
+			{communityRating && (
+				<div className={css.ratingItem}>
+					<span className={css.communityStar}>{"\u2605"}</span>
+					<div className={css.ratingInfo}>
+						<span className={css.ratingValue}>{communityRating}</span>
+						<span className={css.ratingName}>Community</span>
+					</div>
+				</div>
+			)}
+			{!pluginEnabled && item.CriticRating != null && (
+				<div className={css.ratingItem}>
+					<img
+						className={css.ratingIcon}
+						src={getRtIcon(serverUrl, item.CriticRating)}
+						alt="Rotten Tomatoes"
+					/>
+					<div className={css.ratingInfo}>
+						<span className={css.ratingValue}>{item.CriticRating}%</span>
+						<span className={css.ratingName}>Rotten Tomatoes</span>
+					</div>
+				</div>
+			)}
 			{displayRatings.map(r => (
 				<div key={r.source} className={css.ratingItem}>
 					<img

@@ -75,9 +75,11 @@ const DetailSection = forwardRef(({
 						{focusedItem.OfficialRating && (
 							<span className={css.infoBadge}>{focusedItem.OfficialRating}</span>
 						)}
-						{focusedItem.RunTimeTicks && (
-							<span className={css.infoBadge}>{formatDuration(focusedItem.RunTimeTicks)}</span>
-						)}
+						{(() => {
+							if (!focusedItem.RunTimeTicks || focusedItem.Type === 'Series') return null;
+							const dur = formatDuration(focusedItem.RunTimeTicks);
+							return dur && dur !== '0m' ? <span className={css.infoBadge}>{dur}</span> : null;
+						})()}
 						{focusedItem.Type === 'Episode' && focusedItem.ParentIndexNumber !== undefined && (
 							<span className={css.infoBadge}>
 								S{focusedItem.ParentIndexNumber} E{focusedItem.IndexNumber}
@@ -87,9 +89,7 @@ const DetailSection = forwardRef(({
 							<span key={i} className={css.infoBadge}>{g}</span>
 						))}
 					</div>
-					{settings.useMoonfinPlugin && settings.mdblistEnabled !== false && (
-						<RatingsRow item={focusedItem} serverUrl={getItemServerUrl(focusedItem)} compact />
-					)}
+					<RatingsRow item={focusedItem} serverUrl={getItemServerUrl(focusedItem)} compact pluginEnabled={settings.useMoonfinPlugin && settings.mdblistEnabled !== false} />
 					<p className={css.detailSummary}>
 						{focusedItem.Overview || 'No description available.'}
 					</p>

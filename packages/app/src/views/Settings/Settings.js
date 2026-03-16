@@ -52,20 +52,6 @@ const IconPlugin = () => (
 	</svg>
 );
 
-const MDBLIST_SOURCE_OPTIONS = [
-	{value: 'imdb', label: 'IMDb', icon: 'imdb.svg'},
-	{value: 'tmdb', label: 'TMDb', icon: 'tmdb.svg'},
-	{value: 'trakt', label: 'Trakt', icon: 'trakt.svg'},
-	{value: 'tomatoes', label: 'Rotten Tomatoes (Critics)', icon: 'rt-fresh.svg'},
-	{value: 'popcorn', label: 'Rotten Tomatoes (Audience)', icon: 'rt-audience-up.svg'},
-	{value: 'metacritic', label: 'Metacritic', icon: 'metacritic.svg'},
-	{value: 'metacriticuser', label: 'Metacritic User', icon: 'metacritic-user.svg'},
-	{value: 'letterboxd', label: 'Letterboxd', icon: 'letterboxd.svg'},
-	{value: 'rogerebert', label: 'Roger Ebert', icon: 'rogerebert.svg'},
-	{value: 'myanimelist', label: 'MyAnimeList', icon: 'mal.svg'},
-	{value: 'anilist', label: 'AniList', icon: 'anilist.svg'}
-];
-
 const BASE_CATEGORIES = [
 	{id: 'general', label: 'General', Icon: IconGeneral},
 	{id: 'playback', label: 'Playback', Icon: IconPlayback},
@@ -349,16 +335,6 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 		}
 	}, [settings, updateSetting]);
 
-	const toggleMdblistSource = useCallback((ev) => {
-		const source = ev.currentTarget?.dataset?.source;
-		if (!source) return;
-		const current = settings.mdblistRatingSources || [];
-		const updated = current.includes(source)
-			? current.filter(s => s !== source)
-			: [...current, source];
-		updateSetting('mdblistRatingSources', updated);
-	}, [settings.mdblistRatingSources, updateSetting]);
-
 	const handleMoonfinToggle = useCallback(async () => {
 		const enabling = !settings.useMoonfinPlugin;
 		updateSetting('useMoonfinPlugin', enabling);
@@ -412,14 +388,6 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 		}
 		setOptionDialog(null);
 	}, [optionDialog, updateSetting]);
-
-	const handleMdblistApiKeyChange = useCallback((e) => {
-		updateSetting('mdblistApiKey', e.target ? e.target.value : e.value || '');
-	}, [updateSetting]);
-
-	const handleTmdbApiKeyChange = useCallback((e) => {
-		updateSetting('tmdbApiKey', e.target ? e.target.value : e.value || '');
-	}, [updateSetting]);
 
 	const handleSliderPositionAbsolute = useCallback((e) => {
 		updateSetting('subtitlePositionAbsolute', e.value);
@@ -1014,18 +982,6 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 								{info.jellyseerrEnabled ? 'Enabled by Admin' : 'Disabled by Admin'}
 							</span>
 						</SpottableDiv>
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>MDBList Ratings</span>
-							<span className={css.infoValue}>
-								{info.mdblistAvailable ? 'Available' : settings.mdblistApiKey ? 'User Key' : 'Not Configured'}
-							</span>
-						</SpottableDiv>
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>TMDB Ratings</span>
-							<span className={css.infoValue}>
-								{info.tmdbAvailable ? 'Available' : settings.tmdbApiKey ? 'User Key' : 'Not Configured'}
-							</span>
-						</SpottableDiv>
 						{isSeerr && (
 							<SpottableDiv className={css.infoItem} tabIndex={0}>
 								<span className={css.infoLabel}>Detected Variant</span>
@@ -1039,46 +995,6 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 					<div className={css.settingsGroup}>
 						<h2>MDBList Ratings</h2>
 						{renderToggleItem('Enable Ratings', 'Show MDBList ratings on media details and featured bar', 'mdblistEnabled')}
-
-						{settings.mdblistEnabled && (
-							<>
-								<div className={css.inputGroup}>
-									<label>Personal API Key {info.mdblistAvailable ? '(optional)' : '(required)'}</label>
-									<SpottableInput
-										type="text"
-										placeholder={info.mdblistAvailable ? 'Leave blank to use server key' : 'Enter your MDBList API key'}
-										value={settings.mdblistApiKey || ''}
-										onChange={handleMdblistApiKeyChange}
-										className={css.input}
-										spotlightId="setting-mdblist-api-key"
-									/>
-								</div>
-								<h3 className={css.subHeader}>Rating Sources</h3>
-							{MDBLIST_SOURCE_OPTIONS.map(source => (
-								<SpottableDiv
-									key={source.value}
-									className={css.settingItem}
-									onClick={toggleMdblistSource}
-									data-source={source.value}
-									spotlightId={`setting-mdblist-${source.value}`}
-								>
-									<div className={css.settingLabel}>
-										<div className={css.settingTitle}>
-											<img
-												src={`${serverUrl}/Moonfin/Assets/${source.icon}`}
-												alt={source.label}
-												className={css.sourceIcon}
-											/>
-											{source.label}
-										</div>
-									</div>
-									<div className={css.settingValue}>
-										{(settings.mdblistRatingSources || []).includes(source.value) ? 'On' : 'Off'}
-									</div>
-								</SpottableDiv>
-							))}
-							</>
-						)}
 					</div>
 				)}
 
@@ -1086,19 +1002,6 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 					<div className={css.settingsGroup}>
 						<h2>TMDB</h2>
 						{renderToggleItem('Episode Ratings', 'Show TMDB ratings on individual episodes', 'tmdbEpisodeRatingsEnabled')}
-						{settings.tmdbEpisodeRatingsEnabled && (
-							<div className={css.inputGroup}>
-								<label>Personal API Key {info.tmdbAvailable ? '(optional)' : '(required)'}</label>
-								<SpottableInput
-									type="text"
-									placeholder={info.tmdbAvailable ? 'Leave blank to use server key' : 'Enter your TMDB API key'}
-									value={settings.tmdbApiKey || ''}
-									onChange={handleTmdbApiKeyChange}
-									className={css.input}
-									spotlightId="setting-tmdb-api-key"
-								/>
-							</div>
-						)}
 					</div>
 				)}
 

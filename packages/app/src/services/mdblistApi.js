@@ -17,8 +17,6 @@ export const RATING_SOURCES = {
 	anilist:        {name: 'AniList',                  iconFile: 'anilist.svg',         color: '#02A9FF', textColor: '#fff'}
 };
 
-const DEFAULT_SOURCES = ['imdb', 'tmdb', 'tomatoes', 'metacritic'];
-
 /**
  * Get the icon URL for a rating source, with variant based on score.
  */
@@ -148,15 +146,14 @@ export const fetchRatings = async (serverUrl, item, options = {}) => {
 	}
 };
 
-export const buildDisplayRatings = (ratings, serverUrl, selectedSources = DEFAULT_SOURCES) => {
+export const buildDisplayRatings = (ratings, serverUrl) => {
 	if (!ratings || ratings.length === 0) return [];
 
 	const result = [];
-	const sourceSet = new Set(selectedSources);
 
 	for (const rating of ratings) {
 		const source = rating.source && rating.source.toLowerCase();
-		if (!source || !sourceSet.has(source)) continue;
+		if (!source) continue;
 
 		const formatted = formatRating(rating);
 		if (!formatted) continue;

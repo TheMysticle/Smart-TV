@@ -385,16 +385,16 @@ const FeaturedBanner = memo(({
 							{currentFeatured.OfficialRating && (
 								<span className={css.metaItem}>{currentFeatured.OfficialRating}</span>
 							)}
-							{currentFeatured.RunTimeTicks && (
-								<span className={css.metaItem}>{formatDuration(currentFeatured.RunTimeTicks)}</span>
-							)}
+							{(() => {
+								if (!currentFeatured.RunTimeTicks || currentFeatured.Type === 'Series') return null;
+								const dur = formatDuration(currentFeatured.RunTimeTicks);
+								return dur && dur !== '0m' ? <span className={css.metaItem}>{dur}</span> : null;
+							})()}
 							{currentFeatured.Genres?.slice(0, FEATURED_GENRES_LIMIT).map((g, i) => (
 								<span key={i} className={css.metaItem}>{g}</span>
 							))}
 						</div>
-						{settings.useMoonfinPlugin && settings.mdblistEnabled !== false && (
-							<RatingsRow item={currentFeatured} serverUrl={getItemServerUrl(currentFeatured)} compact />
-						)}
+						<RatingsRow item={currentFeatured} serverUrl={getItemServerUrl(currentFeatured)} compact pluginEnabled={settings.useMoonfinPlugin && settings.mdblistEnabled !== false} />
 						<p className={css.featuredOverview}>
 							{currentFeatured.Overview || 'No description available.'}
 						</p>

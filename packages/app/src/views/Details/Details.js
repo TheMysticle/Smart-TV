@@ -897,8 +897,6 @@ const handleSectionKeyDown = useCallback((ev) => {
 		}
 	})();
 	const officialRating = item.OfficialRating || '';
-	const communityRating = item.CommunityRating ? item.CommunityRating.toFixed(1) : '';
-	const criticRating = item.CriticRating;
 	const badges = getMediaBadges(item);
 	const seasonCount = item.ChildCount || seasons.length || 0;
 
@@ -1764,24 +1762,9 @@ const handleSectionKeyDown = useCallback((ev) => {
 										))}
 									</div>
 								)}
-								{/* Ratings */}
-								{(communityRating || criticRating) && (
-									<div className={css.infoRatings}>
-										{communityRating && (
-											<span className={css.ratingItem}>
-												<span className={css.star}>★</span>{communityRating}
-											</span>
-										)}
-										{criticRating && (
-											<span className={css.ratingItem}>
-												<span className={css.tomatoIcon}>🍅</span>{criticRating}%
-											</span>
-										)}
-									</div>
-								)}
 							</div>
 
-							{settings.useMoonfinPlugin && settings.mdblistEnabled !== false && <RatingsRow item={item} serverUrl={effectiveServerUrl} />}
+							<RatingsRow item={item} serverUrl={effectiveServerUrl} pluginEnabled={settings.useMoonfinPlugin && settings.mdblistEnabled !== false} />
 
 							{/* Tagline */}
 							{tagline && <p className={css.tagline}>&ldquo;{tagline}&rdquo;</p>}

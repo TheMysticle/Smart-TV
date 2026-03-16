@@ -53,10 +53,7 @@ const defaultSettings = {
 	unifiedLibraryMode: false,
 	useMoonfinPlugin: false,
 	mdblistEnabled: true,
-	mdblistRatingSources: ['imdb', 'tmdb', 'tomatoes', 'metacritic'],
-	mdblistApiKey: '',
 	tmdbEpisodeRatingsEnabled: true,
-	tmdbApiKey: '',
 	autoLogin: true,
 	navbarPosition: 'top',
 	screensaverEnabled: true,
@@ -82,8 +79,7 @@ const LOCAL_TO_SERVER = Object.fromEntries(
 const SYNCABLE_KEYS = [
 	'showShuffleButton', 'shuffleContentType', 'showGenresButton',
 	'showFavoritesButton', 'showLibrariesInToolbar', 'mergeContinueWatchingNextUp',
-	'mdblistEnabled', 'mdblistApiKey', 'mdblistRatingSources',
-	'tmdbApiKey', 'tmdbEpisodeRatingsEnabled', 'navbarPosition',
+	'mdblistEnabled', 'tmdbEpisodeRatingsEnabled', 'navbarPosition',
 	'showFeaturedBar', 'featuredContentType', 'featuredItemCount',
 	'featuredTrailerPreview', 'unifiedLibraryMode',
 ];
