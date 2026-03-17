@@ -18,7 +18,7 @@ const NavContainer = SpotlightContainerDecorator({
 }, 'nav');
 
 const LibrariesContainer = SpotlightContainerDecorator({
-	enterTo: 'last-focused'
+	enterTo: 'default-element'
 }, 'div');
 
 const SpottableButton = Spottable('button');
@@ -130,23 +130,16 @@ const NavBar = ({
 	const filteredLibraries = libraries;
 
 	const handleLibrariesButtonClick = useCallback(() => {
-		if (!librariesExpanded && filteredLibraries?.length > 0) {
-			setLibrariesExpanded(true);
-			setTimeout(() => {
-				const firstLibBtn = document.querySelector(`.${css.libraryBtn}`);
-				if (firstLibBtn) {
-					Spotlight.focus(firstLibBtn);
-				}
-			}, 50);
+		if (filteredLibraries?.length > 0) {
+			setLibrariesExpanded(prev => !prev);
 		}
-	}, [librariesExpanded, filteredLibraries]);
+	}, [filteredLibraries]);
 
 	const handleLibrariesFocus = useCallback(() => {
 		if (librariesTimeoutRef.current) {
 			clearTimeout(librariesTimeoutRef.current);
 			librariesTimeoutRef.current = null;
 		}
-		setLibrariesExpanded(true);
 	}, []);
 
 	const handleLibrariesBlur = useCallback((e) => {
@@ -158,6 +151,22 @@ const NavBar = ({
 			}
 		}, 100);
 	}, []);
+
+	const handlePillFocus = useCallback((e) => {
+		e.target?.scrollIntoView?.({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
+	}, []);
+
+	useEffect(() => {
+		if (librariesExpanded) {
+			const timer = setTimeout(() => {
+				const firstLibBtn = document.querySelector(`.${css.libraryBtn}`);
+				if (firstLibBtn) {
+					Spotlight.focus(firstLibBtn);
+				}
+			}, 50);
+			return () => clearTimeout(timer);
+		}
+	}, [librariesExpanded]);
 
 	const handleNavKeyDown = useCallback((e) => {
 		if (e.keyCode === KEYS.DOWN) {
@@ -212,7 +221,7 @@ const NavBar = ({
 			</div>
 
 			<div className={css.navCenter}>
-				<div className={css.navPill} style={navPillStyle}>
+				<div className={css.navPill} style={navPillStyle} onFocus={handlePillFocus}>
 					<SpottableButton
 						className={`${css.navBtn} ${css.navBtnIcon} ${css.expandableBtn} spottable-default`}
 						onClick={onHome}
@@ -294,12 +303,12 @@ const NavBar = ({
 								onClick={handleLibrariesButtonClick}
 							>
 								<svg className={css.navIcon} viewBox="0 0 24 24">
-									<path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z" />
+									<path d="M20.84 2.18L16.91 2.96L19.65 6.5L21.62 6.1L20.84 2.18M13.97 3.54L12 3.93L14.75 7.46L16.71 7.07L13.97 3.54M9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05L9.07 4.5M4.16 5.5L3.18 5.69A2 2 0 0 0 1.61 8.04L2 10L6.9 9.03L4.16 5.5M2 10V20C2 21.11 2.9 22 4 22H20C21.11 22 22 21.11 22 20V10H2Z" />
 								</svg>
 								<span className={css.expandLabel}>Libraries</span>
 							</SpottableButton>
 							<div className={css.librariesList}>
-								{filteredLibraries.map((lib) => (
+								{librariesExpanded && filteredLibraries.map((lib) => (
 									<SpottableButton
 										key={lib.Id}
 										className={`${css.navBtn} ${css.libraryBtn} ${activeView === lib.Id ? css.active : ''}`}

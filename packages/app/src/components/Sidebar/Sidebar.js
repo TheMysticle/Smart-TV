@@ -40,11 +40,11 @@ const Sidebar = ({
 	const [clock, setClock] = useState('');
 	const [isHovered, setIsHovered] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
-	const [librariesFocused, setLibrariesFocused] = useState(false);
+	const [librariesOpen, setLibrariesOpen] = useState(false);
 	const blurCheckRef = useRef(null);
 
 	const expanded = isHovered || isFocused;
-	const librariesExpanded = expanded && librariesFocused;
+	const librariesExpanded = expanded && librariesOpen;
 
 	useEffect(() => {
 		const updateClock = () => {
@@ -103,22 +103,17 @@ const Sidebar = ({
 		blurCheckRef.current = window.requestAnimationFrame(() => {
 			if (!container.contains(document.activeElement)) {
 				setIsFocused(false);
-				setLibrariesFocused(false);
+				setLibrariesOpen(false);
 			}
 		});
 	}, []);
 
-	const handleLibrariesFocus = useCallback(() => {
-		setLibrariesFocused(true);
+	const handleLibrariesToggle = useCallback(() => {
+		setLibrariesOpen(prev => !prev);
 	}, []);
 
-	const handleLibrariesBlur = useCallback((e) => {
-		const container = e.currentTarget;
-		window.requestAnimationFrame(() => {
-			if (!container.contains(document.activeElement)) {
-				setLibrariesFocused(false);
-			}
-		});
+	const handleLibraryItemFocus = useCallback((e) => {
+		e.target?.scrollIntoView?.({behavior: 'smooth', block: 'nearest'});
 	}, []);
 
 	useEffect(() => {
@@ -127,21 +122,19 @@ const Sidebar = ({
 			const sidebar = document.querySelector('[data-spotlight-id="navbar"]');
 			if (!sidebar || !sidebar.contains(document.activeElement)) {
 				setIsFocused(false);
-				setLibrariesFocused(false);
+				setLibrariesOpen(false);
 			}
 		};
 		document.addEventListener('focusin', onGlobalFocus);
 		return () => document.removeEventListener('focusin', onGlobalFocus);
 	}, [isFocused]);
 
-	// Cleanup rAF on unmount
 	useEffect(() => {
 		return () => window.cancelAnimationFrame(blurCheckRef.current);
 	}, []);
 
 	const handleNavKeyDown = useCallback((e) => {
 		if (e.keyCode === KEYS.RIGHT) {
-			// Right arrow - move focus to content
 			e.preventDefault();
 			e.stopPropagation();
 			const focusTargets = [
@@ -293,30 +286,30 @@ const Sidebar = ({
 				)}
 
 				{settings.showLibrariesInToolbar !== false && filteredLibraries.length > 0 && (
-					<div
-						onFocus={handleLibrariesFocus}
-						onBlur={handleLibrariesBlur}
-					>
-						<div
+					<div>
+						<SpottableButton
 							className={`${css.sidebarItem} ${css.librariesToggle} ${librariesExpanded ? css.librariesExpandedState : ''}`}
+							onClick={handleLibrariesToggle}
 						>
 							<svg className={css.sidebarIcon} viewBox="0 0 24 24">
-								<path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z" />
+								<path d="M20.84 2.18L16.91 2.96L19.65 6.5L21.62 6.1L20.84 2.18M13.97 3.54L12 3.93L14.75 7.46L16.71 7.07L13.97 3.54M9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05L9.07 4.5M4.16 5.5L3.18 5.69A2 2 0 0 0 1.61 8.04L2 10L6.9 9.03L4.16 5.5M2 10V20C2 21.11 2.9 22 4 22H20C21.11 22 22 21.11 22 20V10H2Z" />
 							</svg>
 							<span className={css.sidebarLabel}>Libraries</span>
 							<svg className={css.chevron} viewBox="0 0 24 24">
 								<path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
 							</svg>
-						</div>
+						</SpottableButton>
 
 						<LibrariesContainer
 							className={`${css.librariesList} ${librariesExpanded ? css.librariesListExpanded : ''}`}
+							spotlightDisabled={!librariesExpanded}
 						>
 							{filteredLibraries.map((lib) => (
 								<SpottableButton
 									key={lib.Id}
 									className={css.libraryItem}
 									onClick={handleLibraryClick}
+									onFocus={handleLibraryItemFocus}
 									data-library-id={lib.Id}
 								>
 									<span className={css.libraryName}>{lib.Name}</span>
