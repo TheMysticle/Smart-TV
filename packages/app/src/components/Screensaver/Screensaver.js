@@ -24,6 +24,8 @@ const BACKDROP_QUERY = {
 	ImageTypes: 'Backdrop'
 };
 
+const RATING_MAP = {0: 'G', 7: 'PG', 13: 'PG-13', 17: 'R', 18: 'NC-17'};
+
 const startBounce = (ref, animRef, width, height) => {
 	const screenWidth = window.innerWidth;
 	const screenHeight = window.innerHeight;
@@ -77,7 +79,7 @@ const formatTime = (clockDisplay) => {
 	return `${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}`;
 };
 
-const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = true, clockDisplay = '24-hour', onDismiss, serverUrl}) => {
+const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = true, clockDisplay = '24-hour', maxRating = null, onDismiss, serverUrl}) => {
 	const [rendered, setRendered] = useState(false);
 	const [showOverlay, setShowOverlay] = useState(false);
 	const [clockText, setClockText] = useState(() => formatTime(clockDisplay));
@@ -125,9 +127,13 @@ const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = 
 		if (!visible || mode !== 'library' || !serverUrl) return;
 		let cancelled = false;
 
+		const query = maxRating != null && RATING_MAP[maxRating]
+			? {...BACKDROP_QUERY, MaxOfficialRating: RATING_MAP[maxRating]}
+			: BACKDROP_QUERY;
+
 		const fetchItems = async () => {
 			try {
-				const result = await jellyfinApi.api.getItems(BACKDROP_QUERY);
+				const result = await jellyfinApi.api.getItems(query);
 				if (cancelled) return;
 				const items = (result?.Items || []).filter(item => getBackdropId(item));
 				if (items.length > 0) {
@@ -149,10 +155,14 @@ const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = 
 			cancelled = true;
 			clearTimeout(initialTimer);
 		};
-	}, [visible, mode, serverUrl]);
+	}, [visible, mode, serverUrl, maxRating]);
 
 	useEffect(() => {
 		if (!visible || mode !== 'library' || !serverUrl || !batchReady) return;
+
+		const query = maxRating != null && RATING_MAP[maxRating]
+			? {...BACKDROP_QUERY, MaxOfficialRating: RATING_MAP[maxRating]}
+			: BACKDROP_QUERY;
 
 		const cycle = async () => {
 			backdropUsedRef.current += 1;
@@ -160,7 +170,7 @@ const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = 
 
 			if (backdropUsedRef.current >= batch.length) {
 				try {
-					const result = await jellyfinApi.api.getItems(BACKDROP_QUERY);
+					const result = await jellyfinApi.api.getItems(query);
 					const items = (result?.Items || []).filter(item => getBackdropId(item));
 					if (items.length > 0) {
 						backdropBatchRef.current = items;
@@ -189,7 +199,7 @@ const Screensaver = ({visible, mode = 'library', dimmingLevel = 50, showClock = 
 				clearInterval(backdropTimerRef.current);
 			}
 		};
-	}, [visible, mode, serverUrl, batchReady]);
+	}, [visible, mode, serverUrl, batchReady, maxRating]);
 
 	useEffect(() => {
 		if (!visible || mode !== 'logo' || !logoRef.current) return;

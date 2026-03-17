@@ -1,5 +1,6 @@
 import {useState, useEffect, useRef} from 'react';
 import {fetchRatings, buildDisplayRatings, getContentType, getTmdbId} from '../../services/mdblistApi';
+import {useSettings} from '../../context/SettingsContext';
 import css from './RatingsRow.module.less';
 
 const getRtIcon = (serverUrl, score) => {
@@ -8,6 +9,8 @@ const getRtIcon = (serverUrl, score) => {
 };
 
 const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) => {
+	const {settings} = useSettings();
+	const showLabels = settings.showRatingLabels !== false;
 	const [displayRatings, setDisplayRatings] = useState([]);
 	const mountedRef = useRef(true);
 	const itemIdRef = useRef(null);
@@ -87,7 +90,7 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 					<span className={css.communityStar}>{"\u2605"}</span>
 					<div className={css.ratingInfo}>
 						<span className={css.ratingValue}>{communityRating}</span>
-						<span className={css.ratingName}>Community</span>
+						{showLabels && <span className={css.ratingName}>Community</span>}
 					</div>
 				</div>
 			)}
@@ -100,7 +103,7 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 					/>
 					<div className={css.ratingInfo}>
 						<span className={css.ratingValue}>{item.CriticRating}%</span>
-						<span className={css.ratingName}>Rotten Tomatoes</span>
+						{showLabels && <span className={css.ratingName}>Rotten Tomatoes</span>}
 					</div>
 				</div>
 			)}
@@ -114,7 +117,7 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 					/>
 					<div className={css.ratingInfo}>
 						<span className={css.ratingValue}>{r.formatted}</span>
-						<span className={css.ratingName}>{r.name}</span>
+						{showLabels && <span className={css.ratingName}>{r.name}</span>}
 					</div>
 				</div>
 			))}

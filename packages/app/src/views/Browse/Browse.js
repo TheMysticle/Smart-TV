@@ -96,7 +96,10 @@ const stripItemForCache = (item) => ({
 const Browse = ({
 	onSelectItem,
 	onSelectLibrary,
-	isVisible = true
+	isVisible = true,
+	onFocusItemThemeMusic,
+	onBlurItemThemeMusic,
+	onLeaveThemeMusic
 }) => {
 	const {api, serverUrl, accessToken, hasMultipleServers, user} = useAuth();
 	const {settings} = useSettings();
@@ -749,6 +752,8 @@ const Browse = ({
 	}, [browseMode, currentFeaturedItem, focusedItemForBackdrop, isLegacy, settings.showHomeBackdrop, getItemServerUrl]);
 
 	const handleSelectItem = useCallback((item) => {
+		onBlurItemThemeMusic?.();
+		onLeaveThemeMusic?.();
 		if (lastFocusedRowRef.current !== null) {
 			lastFocusState = {
 				rowIndex: lastFocusedRowRef.current
@@ -759,7 +764,7 @@ const Browse = ({
 		} else {
 			onSelectItem?.(item);
 		}
-	}, [onSelectItem, onSelectLibrary]);
+	}, [onSelectItem, onSelectLibrary, onBlurItemThemeMusic, onLeaveThemeMusic]);
 
 	const handleNavigateDownFromFeatured = useCallback(() => {
 		dispatch({type: 'SET_BROWSE_MODE', mode: 'rows'});
@@ -784,7 +789,12 @@ const Browse = ({
 
 	const handleFocusItem = useCallback((item) => {
 		detailSectionRef.current?.handleFocusItem(item);
-	}, []);
+		if (item?.Id && (item.Type === 'Movie' || item.Type === 'Series')) {
+			onFocusItemThemeMusic?.(item.Id);
+		} else {
+			onBlurItemThemeMusic?.();
+		}
+	}, [onFocusItemThemeMusic, onBlurItemThemeMusic]);
 
 	if (isLoading) {
 		return (

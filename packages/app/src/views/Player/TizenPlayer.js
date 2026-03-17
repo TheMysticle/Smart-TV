@@ -772,11 +772,17 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			setIsPaused(true);
 			playback.reportProgress(positionRef.current, { isPaused: true, eventName: 'pause' });
 		} else if (state === 'PAUSED' || state === 'READY') {
+			const rewind = settings.unpauseRewind || 0;
+			if (rewind > 0) {
+				const ms = avplayGetCurrentTime();
+				const newMs = Math.max(0, ms - rewind * 1000);
+				avplaySeek(newMs).catch(() => {});
+			}
 			avplayPlay();
 			setIsPaused(false);
 			playback.reportProgress(positionRef.current, { isPaused: false, eventName: 'unpause' });
 		}
-	}, []);
+	}, [settings.unpauseRewind]);
 
 	const handleRewind = useCallback(() => {
 		if (!avplayReadyRef.current) return;
@@ -789,9 +795,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		if (!avplayReadyRef.current) return;
 		const ms = avplayGetCurrentTime();
 		const durationMs = avplayGetDuration();
-		const newMs = Math.min(durationMs, ms + settings.seekStep * 1000);
+		const step = settings.skipForwardLength || settings.seekStep;
+		const newMs = Math.min(durationMs, ms + step * 1000);
 		avplaySeek(newMs).catch(e => console.warn('[Player] Seek failed:', e));
-	}, [settings.seekStep]);
+	}, [settings.skipForwardLength, settings.seekStep]);
 
 	// Modal handlers
 	const openModal = useCallback((modal) => {
@@ -1363,6 +1370,12 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			{playbackRate !== 1 && (
 				<div className={css.playbackIndicators}>
 					<div className={css.speedIndicator}>{playbackRate}x</div>
+				</div>
+			)}
+
+			{isPaused && settings.showDescriptionOnPause && item?.Overview && !isAudioMode && !activeModal && !controlsVisible && (
+				<div className={css.pauseDescriptionOverlay}>
+					<div className={css.pauseDescriptionText}>{item.Overview}</div>
 				</div>
 			)}
 

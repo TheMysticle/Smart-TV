@@ -14,9 +14,7 @@ import css from './NavBar.module.less';
 const NavContainer = SpotlightContainerDecorator({
 	enterTo: 'default-element',
 	defaultElement: '.spottable-default',
-	preserveId: true,
-	navigationDisabled: (dir, spotlightId) =>
-		dir === 'right' && spotlightId === 'navbar-settings'
+	preserveId: true
 }, 'nav');
 
 const LibrariesContainer = SpotlightContainerDecorator({
@@ -168,7 +166,12 @@ const NavBar = ({
 			const focusTargets = [
 				'featured-banner',
 				'row-0',
-				'settings-sidebar',
+				'categories-view',
+				'category-view',
+				'subcategory-view',
+				'options-view',
+				'homerows-view',
+				'libraries-view',
 				'favorites-row-0',
 				'genres-grid',
 				'genre-browse-grid',

@@ -287,9 +287,8 @@ async function main() {
 			const origLen = css.length;
 			// 'initial' keyword not supported before Safari 9.1
 			css = css.replace(/background-color:initial/g, 'background-color:rgba(0,0,0,0)');
-			// Resolve any remaining var(--accent-color, #hex) to just the fallback
-			css = css.replace(/var\(--accent-color,\s*([^)]+)\)/g, '$1');
-			css = css.replace(/var\(--sand-accent-color,\s*([^)]+)\)/g, '$1');
+			// Resolve all var(--*, fallback) to just the fallback value
+			css = css.replace(/var\(--[\w-]+,\s*([^)]+)\)/g, '$1');
 			if (css.length !== origLen) {
 				fs.writeFileSync(cssPath, css);
 				log(`  Patched ${cssFile}`);

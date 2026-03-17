@@ -4,18 +4,6 @@ import {isBackKey} from '../../utils/keys';
 
 /**
  * Shared hook for skip-intro, skip-credits, and next-episode popup logic.
- *
- * @param {Object} options
- * @param {Object|null}  options.mediaSegments     - {introStart, introEnd, creditsStart}
- * @param {Object|null}  options.nextEpisode       - next episode item (null if none)
- * @param {Object}       options.settings          - {skipIntro, skipCredits, autoPlay}
- * @param {React.MutableRefObject<number>} options.runTimeRef - total runtime in ticks
- * @param {boolean}      options.activeModal       - whether a modal is open
- * @param {boolean}      options.controlsVisible   - whether player controls are showing
- * @param {Function}     options.hideControls      - hide player controls
- * @param {Function}     options.showControls       - show player controls
- * @param {Function}     options.onSeekToIntroEnd  - platform-specific seek to intro end
- * @param {Function}     options.onPlayNext        - platform-specific play-next handler
  */
 const useSegmentPopups = ({
 	mediaSegments,
@@ -61,7 +49,12 @@ const useSegmentPopups = ({
 	const startNextEpisodeCountdown = useCallback(() => {
 		if (nextEpisodeTimerRef.current) return;
 
-		let countdown = 15;
+		const timeout = settings.nextUpTimeout ?? 7;
+		if (timeout === 0) {
+			handlePlayNextEpisode();
+			return;
+		}
+		let countdown = timeout;
 		setNextEpisodeCountdown(countdown);
 
 		nextEpisodeTimerRef.current = setInterval(() => {
@@ -74,7 +67,7 @@ const useSegmentPopups = ({
 				handlePlayNextEpisode();
 			}
 		}, 1000);
-	}, [handlePlayNextEpisode]);
+	}, [handlePlayNextEpisode, settings.nextUpTimeout]);
 
 	// --- Skip Intro ---
 
@@ -101,32 +94,34 @@ const useSegmentPopups = ({
 	// --- Segment checking (call from timeupdate) ---
 
 	const checkSegments = useCallback((ticks) => {
+		const introAction = settings.introAction || 'ask';
+		const outroAction = settings.outroAction || 'ask';
+
 		if (mediaSegments) {
 			const {introStart, introEnd, creditsStart} = mediaSegments;
 
-			if (introStart != null && introEnd != null) {
+			if (introStart != null && introEnd != null && introAction !== 'none') {
 				const inIntro = ticks >= introStart && ticks < introEnd;
-				const nearIntro = ticks >= (introStart -1) && ticks < (introEnd + 1);
-				if (inIntro && settings.skipIntro && !skipIntroDismissedRef.current) {
-				  handleSkipIntro();
-          skipIntroDismissedRef.current = true;
+				const nearIntro = ticks >= (introStart - 1) && ticks < (introEnd + 1);
+				if (inIntro && introAction === 'auto' && !skipIntroDismissedRef.current) {
+					handleSkipIntro();
+					skipIntroDismissedRef.current = true;
 				}
-				if (inIntro && !settings.skipIntro && !skipIntroDismissedRef.current) {
+				if (inIntro && introAction === 'ask' && !skipIntroDismissedRef.current) {
 					setShowSkipIntro(true);
 				}
 				if (!nearIntro) {
-				  skipIntroDismissedRef.current = false;
+					skipIntroDismissedRef.current = false;
 					setShowSkipIntro(false);
 				}
 			}
 
-			if (creditsStart != null && nextEpisode && !hasTriggeredNextEpisodeRef.current) {
+			if (creditsStart != null && nextEpisode && !hasTriggeredNextEpisodeRef.current && outroAction !== 'none') {
 				const inCredits = ticks >= creditsStart;
 				if (inCredits) {
 					setShowSkipCredits(prev => {
 						if (!prev) {
-							if (settings.skipCredits) {
-								// Auto-skip: defer to avoid setState-during-render
+							if (outroAction === 'auto') {
 								setTimeout(() => handlePlayNextEpisode(), 0);
 								return false;
 							}
@@ -138,14 +133,14 @@ const useSegmentPopups = ({
 			}
 		}
 
-		if (nextEpisode && runTimeRef.current > 0) {
+		if (nextEpisode && runTimeRef.current > 0 && settings.nextUpBehavior !== 'disabled') {
 			const remaining = runTimeRef.current - ticks;
 			const nearEnd = remaining < 300000000;
 			if (nearEnd && !hasTriggeredNextEpisodeRef.current) {
 				setShowNextEpisode(true);
 			}
 		}
-	}, [mediaSegments, settings.skipIntro, settings.skipCredits, nextEpisode, runTimeRef, handlePlayNextEpisode, handleSkipIntro]);
+	}, [mediaSegments, settings.introAction, settings.outroAction, settings.nextUpBehavior, nextEpisode, runTimeRef, handlePlayNextEpisode, handleSkipIntro]);
 
 	// --- Auto-focus effects ---
 

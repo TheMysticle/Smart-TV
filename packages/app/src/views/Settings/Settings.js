@@ -1,8 +1,7 @@
-import {useCallback, useState, useEffect} from 'react';
+import {useCallback, useState, useEffect, useRef} from 'react';
 import Spottable from '@enact/spotlight/Spottable';
 import SpotlightContainerDecorator from '@enact/spotlight/SpotlightContainerDecorator';
 import Spotlight from '@enact/spotlight';
-import Popup from '@enact/sandstone/Popup';
 import Button from '@enact/sandstone/Button';
 import Slider from '@enact/sandstone/Slider';
 import {useAuth} from '../../context/AuthContext';
@@ -11,343 +10,394 @@ import {useJellyseerr} from '../../context/JellyseerrContext';
 import {useDeviceInfo} from '../../hooks/useDeviceInfo';
 import serverLogger from '../../services/serverLogger';
 import connectionPool from '../../services/connectionPool';
-import {isBackKey, KEYS} from '../../utils/keys';
+import {isBackKey} from '../../utils/keys';
 
 import css from './Settings.module.less';
 
 const SpottableDiv = Spottable('div');
 const SpottableButton = Spottable('button');
 const SpottableInput = Spottable('input');
-
-const SidebarContainer = SpotlightContainerDecorator({enterTo: 'last-focused'}, 'div');
-const ContentContainer = SpotlightContainerDecorator({enterTo: 'last-focused'}, 'div');
+const ViewContainer = SpotlightContainerDecorator({enterTo: 'last-focused', restrict: 'self-first'}, 'div');
 
 const IconGeneral = () => (
-	<svg viewBox="0 0 24 24" fill="currentColor">
-		<path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' />
 	</svg>
 );
 
 const IconPlayback = () => (
-	<svg viewBox="0 0 24 24" fill="currentColor">
-		<path d="M8 5v14l11-7z" />
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M8 5v14l11-7z' />
 	</svg>
 );
 
 const IconDisplay = () => (
-	<svg viewBox="0 0 24 24" fill="currentColor">
-		<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" />
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z' />
 	</svg>
 );
 
 const IconAbout = () => (
-	<svg viewBox="0 0 24 24" fill="currentColor">
-		<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z' />
 	</svg>
 );
 
 const IconPlugin = () => (
-	<svg viewBox="0 0 24 24" fill="currentColor">
-		<path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7s2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z" />
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7s2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z' />
+	</svg>
+);
+
+const IconChevron = () => (
+	<svg viewBox='0 0 24 24' fill='currentColor'>
+		<path d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z' />
 	</svg>
 );
 
 const BASE_CATEGORIES = [
-	{id: 'general', label: 'General', Icon: IconGeneral},
-	{id: 'playback', label: 'Playback', Icon: IconPlayback},
-	{id: 'display', label: 'Display', Icon: IconDisplay},
-	{id: 'plugin', label: 'Plugin', Icon: IconPlugin},
-	{id: 'about', label: 'About', Icon: IconAbout}
+	{ id: 'general', label: 'General', description: 'App behavior, navigation, and home screen', Icon: IconGeneral },
+	{ id: 'playback', label: 'Playback', description: 'Video, audio, and subtitle options', Icon: IconPlayback },
+	{ id: 'display', label: 'Display', description: 'Appearance, theme, and screensaver', Icon: IconDisplay },
+	{ id: 'plugin', label: 'Plugin', description: 'Moonfin plugin and integrations', Icon: IconPlugin },
+	{ id: 'about', label: 'About', description: 'App info and device capabilities', Icon: IconAbout }
 ];
 
 const BITRATE_OPTIONS = [
-	{value: 0, label: 'Auto (No limit)'},
-	{value: 120000000, label: '120 Mbps'},
-	{value: 80000000, label: '80 Mbps'},
-	{value: 60000000, label: '60 Mbps'},
-	{value: 40000000, label: '40 Mbps'},
-	{value: 20000000, label: '20 Mbps'},
-	{value: 10000000, label: '10 Mbps'},
-	{value: 5000000, label: '5 Mbps'}
+	{ value: 0, label: 'Auto (No limit)' },
+	{ value: 120000000, label: '120 Mbps' },
+	{ value: 80000000, label: '80 Mbps' },
+	{ value: 60000000, label: '60 Mbps' },
+	{ value: 40000000, label: '40 Mbps' },
+	{ value: 20000000, label: '20 Mbps' },
+	{ value: 10000000, label: '10 Mbps' },
+	{ value: 5000000, label: '5 Mbps' }
 ];
 
 const CONTENT_TYPE_OPTIONS = [
-	{value: 'both', label: 'Movies & TV Shows'},
-	{value: 'movies', label: 'Movies Only'},
-	{value: 'tv', label: 'TV Shows Only'}
+	{ value: 'both', label: 'Movies & TV Shows' },
+	{ value: 'movies', label: 'Movies Only' },
+	{ value: 'tv', label: 'TV Shows Only' }
 ];
 
 const FEATURED_ITEM_COUNT_OPTIONS = [
-	{value: 5, label: '5 items'},
-	{value: 10, label: '10 items'},
-	{value: 15, label: '15 items'}
+	{ value: 5, label: '5 items' },
+	{ value: 10, label: '10 items' },
+	{ value: 15, label: '15 items' }
 ];
 
 const BLUR_OPTIONS = [
-	{value: 0, label: 'Off'},
-	{value: 10, label: 'Light'},
-	{value: 20, label: 'Medium'},
-	{value: 30, label: 'Strong'},
-	{value: 40, label: 'Heavy'}
+	{ value: 0, label: 'Off' },
+	{ value: 10, label: 'Light' },
+	{ value: 20, label: 'Medium' },
+	{ value: 30, label: 'Strong' },
+	{ value: 40, label: 'Heavy' }
 ];
 
 const SUBTITLE_SIZE_OPTIONS = [
-	{value: 'small', label: 'Small', fontSize: 36},
-	{value: 'medium', label: 'Medium', fontSize: 44},
-	{value: 'large', label: 'Large', fontSize: 52},
-	{value: 'xlarge', label: 'Extra Large', fontSize: 60}
+	{ value: 'small', label: 'Small', fontSize: 36 },
+	{ value: 'medium', label: 'Medium', fontSize: 44 },
+	{ value: 'large', label: 'Large', fontSize: 52 },
+	{ value: 'xlarge', label: 'Extra Large', fontSize: 60 }
 ];
 
 const SUBTITLE_POSITION_OPTIONS = [
-	{value: 'bottom', label: 'Bottom', offset: 10},
-	{value: 'lower', label: 'Lower', offset: 20},
-	{value: 'middle', label: 'Middle', offset: 30},
-	{value: 'higher', label: 'Higher', offset: 40},
-	{value: 'absolute', label: 'Absolute', offset: 0}
+	{ value: 'bottom', label: 'Bottom', offset: 10 },
+	{ value: 'lower', label: 'Lower', offset: 20 },
+	{ value: 'middle', label: 'Middle', offset: 30 },
+	{ value: 'higher', label: 'Higher', offset: 40 },
+	{ value: 'absolute', label: 'Absolute', offset: 0 }
 ];
 
 const SUBTITLE_COLOR_OPTIONS = [
-	{value: '#ffffff', label: 'White'},
-	{value: '#ffff00', label: 'Yellow'},
-	{value: '#00ffff', label: 'Cyan'},
-	{value: '#ff00ff', label: 'Magenta'},
-	{value: '#00ff00', label: 'Green'},
-	{value: '#ff0000', label: 'Red'},
-	{value: '#808080', label: 'Grey'},
-	{value: '#404040', label: 'Dark Grey'}
+	{ value: '#ffffff', label: 'White' },
+	{ value: '#ffff00', label: 'Yellow' },
+	{ value: '#00ffff', label: 'Cyan' },
+	{ value: '#ff00ff', label: 'Magenta' },
+	{ value: '#00ff00', label: 'Green' },
+	{ value: '#ff0000', label: 'Red' },
+	{ value: '#808080', label: 'Grey' },
+	{ value: '#404040', label: 'Dark Grey' }
 ];
 
 const SUBTITLE_SHADOW_COLOR_OPTIONS = [
-	{value: '#000000', label: 'Black'},
-	{value: '#ffffff', label: 'White'},
-	{value: '#808080', label: 'Grey'},
-	{value: '#404040', label: 'Dark Grey'},
-	{value: '#ff0000', label: 'Red'},
-	{value: '#00ff00', label: 'Green'},
-	{value: '#0000ff', label: 'Blue'}
+	{ value: '#000000', label: 'Black' },
+	{ value: '#ffffff', label: 'White' },
+	{ value: '#808080', label: 'Grey' },
+	{ value: '#404040', label: 'Dark Grey' },
+	{ value: '#ff0000', label: 'Red' },
+	{ value: '#00ff00', label: 'Green' },
+	{ value: '#0000ff', label: 'Blue' }
 ];
 
 const SUBTITLE_BACKGROUND_COLOR_OPTIONS = [
-	{value: '#000000', label: 'Black'},
-	{value: '#ffffff', label: 'White'},
-	{value: '#808080', label: 'Grey'},
-	{value: '#404040', label: 'Dark Grey'},
-	{value: '#000080', label: 'Navy'}
+	{ value: '#000000', label: 'Black' },
+	{ value: '#ffffff', label: 'White' },
+	{ value: '#808080', label: 'Grey' },
+	{ value: '#404040', label: 'Dark Grey' },
+	{ value: '#000080', label: 'Navy' }
 ];
 
 const SEEK_STEP_OPTIONS = [
-	{value: 5, label: '5 seconds'},
-	{value: 10, label: '10 seconds'},
-	{value: 20, label: '20 seconds'},
-	{value: 30, label: '30 seconds'}
+	{ value: 5, label: '5 seconds' },
+	{ value: 10, label: '10 seconds' },
+	{ value: 20, label: '20 seconds' },
+	{ value: 30, label: '30 seconds' }
 ];
 
 const UI_OPACITY_OPTIONS = [
-	{value: 50, label: '50%'},
-	{value: 65, label: '65%'},
-	{value: 75, label: '75%'},
-	{value: 85, label: '85%'},
-	{value: 95, label: '95%'}
+	{ value: 50, label: '50%' },
+	{ value: 65, label: '65%' },
+	{ value: 75, label: '75%' },
+	{ value: 85, label: '85%' },
+	{ value: 95, label: '95%' }
 ];
 
 const USER_OPACITY_OPTIONS = [
-	{value: 0, label: '0%'},
-	{value: 50, label: '50%'},
-	{value: 65, label: '65%'},
-	{value: 75, label: '75%'},
-	{value: 85, label: '85%'},
-	{value: 95, label: '95%'}
+	{ value: 0, label: '0%' },
+	{ value: 50, label: '50%' },
+	{ value: 65, label: '65%' },
+	{ value: 75, label: '75%' },
+	{ value: 85, label: '85%' },
+	{ value: 95, label: '95%' }
 ];
 
 const UI_COLOR_OPTIONS = [
-	{value: 'dark', label: 'Dark Gray', rgb: '40, 40, 40'},
-	{value: 'black', label: 'Black', rgb: '0, 0, 0'},
-	{value: 'charcoal', label: 'Charcoal', rgb: '54, 54, 54'},
-	{value: 'slate', label: 'Slate', rgb: '47, 54, 64'},
-	{value: 'navy', label: 'Navy', rgb: '20, 30, 48'},
-	{value: 'midnight', label: 'Midnight Blue', rgb: '25, 25, 65'},
-	{value: 'ocean', label: 'Ocean', rgb: '20, 50, 70'},
-	{value: 'teal', label: 'Teal', rgb: '0, 60, 60'},
-	{value: 'forest', label: 'Forest', rgb: '25, 50, 35'},
-	{value: 'olive', label: 'Olive', rgb: '50, 50, 25'},
-	{value: 'purple', label: 'Purple', rgb: '48, 25, 52'},
-	{value: 'plum', label: 'Plum', rgb: '60, 30, 60'},
-	{value: 'wine', label: 'Wine', rgb: '60, 20, 30'},
-	{value: 'maroon', label: 'Maroon', rgb: '50, 20, 20'},
-	{value: 'brown', label: 'Brown', rgb: '50, 35, 25'}
+	{ value: 'gray', label: 'Gray', rgb: '128, 128, 128' },
+	{ value: 'black', label: 'Black', rgb: '0, 0, 0' },
+	{ value: 'dark_blue', label: 'Dark Blue', rgb: '26, 35, 50' },
+	{ value: 'purple', label: 'Purple', rgb: '74, 20, 140' },
+	{ value: 'teal', label: 'Teal', rgb: '0, 105, 92' },
+	{ value: 'navy', label: 'Navy', rgb: '13, 27, 42' },
+	{ value: 'charcoal', label: 'Charcoal', rgb: '54, 69, 79' },
+	{ value: 'brown', label: 'Brown', rgb: '62, 39, 35' },
+	{ value: 'dark_red', label: 'Dark Red', rgb: '139, 0, 0' },
+	{ value: 'dark_green', label: 'Dark Green', rgb: '11, 79, 15' },
+	{ value: 'slate', label: 'Slate', rgb: '71, 85, 105' },
+	{ value: 'indigo', label: 'Indigo', rgb: '30, 58, 138' }
 ];
 
 const SCREENSAVER_MODE_OPTIONS = [
-	{value: 'library', label: 'Library Backdrops'},
-	{value: 'logo', label: 'Moonfin Logo'}
+	{ value: 'library', label: 'Library Backdrops' },
+	{ value: 'logo', label: 'Moonfin Logo' }
 ];
 
 const SCREENSAVER_TIMEOUT_OPTIONS = [
-	{value: 30, label: '30 seconds'},
-	{value: 60, label: '1 minute'},
-	{value: 90, label: '90 seconds'},
-	{value: 120, label: '2 minutes'},
-	{value: 180, label: '3 minutes'},
-	{value: 300, label: '5 minutes'}
+	{ value: 30, label: '30 seconds' },
+	{ value: 60, label: '1 minute' },
+	{ value: 90, label: '90 seconds' },
+	{ value: 120, label: '2 minutes' },
+	{ value: 180, label: '3 minutes' },
+	{ value: 300, label: '5 minutes' }
 ];
 
 const SCREENSAVER_DIMMING_OPTIONS = [
-	{value: 0, label: 'Off'},
-	{value: 25, label: '25%'},
-	{value: 50, label: '50%'},
-	{value: 75, label: '75%'},
-	{value: 100, label: '100%'}
+	{ value: 0, label: 'Off' },
+	{ value: 25, label: '25%' },
+	{ value: 50, label: '50%' },
+	{ value: 75, label: '75%' },
+	{ value: 100, label: '100%' }
 ];
 
 const CLOCK_DISPLAY_OPTIONS = [
-	{value: '12-hour', label: '12-Hour'},
-	{value: '24-hour', label: '24-Hour'}
+	{ value: '12-hour', label: '12-Hour' },
+	{ value: '24-hour', label: '24-Hour' }
 ];
 
 const NAV_POSITION_OPTIONS = [
-	{value: 'top', label: 'Top Bar'},
-	{value: 'left', label: 'Left Sidebar'}
+	{ value: 'top', label: 'Top Bar' },
+	{ value: 'left', label: 'Left Sidebar' }
 ];
 
-const OptionDialogContainer = SpotlightContainerDecorator({enterTo: 'default-element', restrict: 'self-only'}, 'div');
+const WATCHED_INDICATOR_OPTIONS = [
+	{ value: 'always', label: 'Always' },
+	{ value: 'hideCount', label: 'Hide Unwatched Count' },
+	{ value: 'episodesOnly', label: 'Episodes Only' },
+	{ value: 'never', label: 'Never' }
+];
+
+const POSTER_SIZE_OPTIONS = [
+	{ value: 'small', label: 'Small' },
+	{ value: 'default', label: 'Default' },
+	{ value: 'large', label: 'Large' },
+	{ value: 'xlarge', label: 'Extra Large' }
+];
+
+const IMAGE_TYPE_OPTIONS = [
+	{ value: 'poster', label: 'Poster' },
+	{ value: 'backdrop', label: 'Backdrop' },
+	{ value: 'logo', label: 'Logo' },
+	{ value: 'thumb', label: 'Thumb' }
+];
+
+const FOCUS_COLOR_OPTIONS = [
+	{ value: '#00a4dc', label: 'Blue' },
+	{ value: '#ffffff', label: 'White' },
+	{ value: '#9b59b6', label: 'Purple' },
+	{ value: '#1abc9c', label: 'Teal' },
+	{ value: '#2c3e50', label: 'Navy' },
+	{ value: '#e74c3c', label: 'Red' },
+	{ value: '#2ecc71', label: 'Green' },
+	{ value: '#e67e22', label: 'Orange' },
+	{ value: '#e91e63', label: 'Pink' },
+	{ value: '#f1c40f', label: 'Yellow' }
+];
+
+const NEXT_UP_BEHAVIOR_OPTIONS = [
+	{ value: 'extended', label: 'Extended' },
+	{ value: 'minimal', label: 'Minimal' },
+	{ value: 'disabled', label: 'Disabled' }
+];
+
+const MEDIA_SEGMENT_ACTION_OPTIONS = [
+	{ value: 'ask', label: 'Ask to Skip' },
+	{ value: 'auto', label: 'Auto Skip' },
+	{ value: 'none', label: "Don't Skip" }
+];
+
+const SEASONAL_THEME_OPTIONS = [
+	{ value: 'none', label: 'None' },
+	{ value: 'winter', label: 'Winter' },
+	{ value: 'spring', label: 'Spring' },
+	{ value: 'summer', label: 'Summer' },
+	{ value: 'fall', label: 'Fall' },
+	{ value: 'halloween', label: 'Halloween' }
+];
+
+const AGE_RATING_OPTIONS = [
+	{ value: 0, label: 'G' },
+	{ value: 7, label: 'PG' },
+	{ value: 13, label: 'PG-13' },
+	{ value: 17, label: 'R' },
+	{ value: 18, label: 'NC-17' }
+];
 
 const getLabel = (options, value, fallback) => {
-	const option = options.find(o => o.value === value);
+	const option = options.find((o) => o.value === value);
 	return option?.label || fallback;
 };
 
-const Settings = ({onBack, onLibrariesChanged}) => {
-	const {
-		api,
-		serverUrl,
-		accessToken,
-		hasMultipleServers,
-	} = useAuth();
-	const {settings, updateSetting} = useSettings();
-	const {capabilities} = useDeviceInfo();
+const Settings = ({ onBack, onLibrariesChanged }) => {
+	const { api, serverUrl, accessToken, hasMultipleServers } = useAuth();
+	const { settings, updateSetting } = useSettings();
+	const { capabilities } = useDeviceInfo();
 	const jellyseerr = useJellyseerr();
 	const isSeerr = jellyseerr.isMoonfin && jellyseerr.variant === 'seerr';
-	const seerrLabel = isSeerr ? (jellyseerr.displayName || 'Seerr') : 'Jellyseerr';
-
+	const seerrLabel = isSeerr ? jellyseerr.displayName || 'Seerr' : 'Jellyseerr';
 	const categories = BASE_CATEGORIES;
 
-	const [activeCategory, setActiveCategory] = useState('general');
-	const [showHomeRowsModal, setShowHomeRowsModal] = useState(false);
-	const [tempHomeRows, setTempHomeRows] = useState([]);
+	const [navStack, setNavStack] = useState([{ view: 'categories' }]);
+	const currentView = navStack[navStack.length - 1];
+	const pendingFocusRef = useRef(null);
 
-	// Library visibility
-	const [showLibraryModal, setShowLibraryModal] = useState(false);
+	const pushView = useCallback((view) => {
+		setNavStack((prev) => [...prev, view]);
+	}, []);
+
+	const popView = useCallback(() => {
+		setNavStack((prev) => {
+			if (prev.length <= 1) {
+				onBack?.();
+				return prev;
+			}
+			const popped = prev[prev.length - 1];
+			pendingFocusRef.current = popped.returnFocusTo || null;
+			return prev.slice(0, -1);
+		});
+	}, [onBack]);
+
+	const [serverVersion, setServerVersion] = useState(null);
+	const [moonfinConnecting, setMoonfinConnecting] = useState(false);
+	const [moonfinStatus, setMoonfinStatus] = useState('');
+	const [moonfinLoginMode, setMoonfinLoginMode] = useState(false);
+	const [moonfinUsername, setMoonfinUsername] = useState('');
+	const [moonfinPassword, setMoonfinPassword] = useState('');
+	const [tempHomeRows, setTempHomeRows] = useState([]);
 	const [allLibraries, setAllLibraries] = useState([]);
 	const [hiddenLibraries, setHiddenLibraries] = useState([]);
 	const [libraryLoading, setLibraryLoading] = useState(false);
 	const [librarySaving, setLibrarySaving] = useState(false);
 	const [serverConfigs, setServerConfigs] = useState([]);
 
-	const [serverVersion, setServerVersion] = useState(null);
-
-	const [moonfinConnecting, setMoonfinConnecting] = useState(false);
-	const [moonfinStatus, setMoonfinStatus] = useState('');
-	const [moonfinLoginMode, setMoonfinLoginMode] = useState(false);
-	const [moonfinUsername, setMoonfinUsername] = useState('');
-	const [moonfinPassword, setMoonfinPassword] = useState('');
-	const [optionDialog, setOptionDialog] = useState(null);
-
 	useEffect(() => {
-		Spotlight.focus('sidebar-general');
-	}, []);
+		const timer = setTimeout(() => {
+			if (pendingFocusRef.current) {
+				Spotlight.focus(pendingFocusRef.current);
+				pendingFocusRef.current = null;
+				return;
+			}
+			const cv = navStack[navStack.length - 1];
+			if (cv.view === 'categories') {
+				Spotlight.focus('cat-general');
+			} else if (cv.view === 'category') {
+				const subcats = getSubcategories(cv.id);
+				Spotlight.focus(subcats.length > 0 ? `subcat-${subcats[0].id}` : 'category-view');
+			} else if (cv.view === 'subcategory') {
+				Spotlight.focus('subcategory-view');
+			} else if (cv.view === 'options') {
+				const idx = cv.options?.findIndex((o) => o.value === settings[cv.settingKey]);
+				Spotlight.focus(idx >= 0 ? `opt-${idx}` : 'opt-0');
+			} else if (cv.view === 'homeRows') {
+				Spotlight.focus('homerows-view');
+			} else if (cv.view === 'libraries') {
+				Spotlight.focus('libraries-view');
+			}
+		}, 50);
+		return () => clearTimeout(timer);
+	}, [navStack]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	// Global back button handler for Settings view
 	useEffect(() => {
 		const handleKeyDown = (e) => {
 			if (isBackKey(e)) {
-				if (e.target.tagName === 'INPUT') {
-					return;
-				}
+				if (e.target.tagName === 'INPUT') return;
 				e.preventDefault();
 				e.stopPropagation();
-				if (optionDialog) {
-					setOptionDialog(null);
-					return;
-				}
-				if (showHomeRowsModal) {
-					setShowHomeRowsModal(false);
-					return;
-				}
-				if (showLibraryModal) {
-					setShowLibraryModal(false);
-					return;
-				}
-				onBack?.();
+				popView();
 			}
 		};
-
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [onBack, optionDialog, showHomeRowsModal, showLibraryModal]);
+	}, [popView]);
 
 	useEffect(() => {
 		if (serverUrl && accessToken) {
 			fetch(`${serverUrl}/System/Info`, {
-				headers: {
-					'Authorization': `MediaBrowser Token="${accessToken}"`
-				}
+				headers: { Authorization: `MediaBrowser Token="${accessToken}"` }
 			})
-				.then(res => res.json())
-				.then(data => {
-					if (data.Version) {
-						setServerVersion(data.Version);
-					}
+				.then((res) => res.json())
+				.then((data) => {
+					if (data.Version) setServerVersion(data.Version);
 				})
 				.catch(() => {});
 		}
 	}, [serverUrl, accessToken]);
 
-	const handleCategorySelect = useCallback((e) => {
-		const categoryId = e.currentTarget?.dataset?.category;
-		if (categoryId) {
-			setActiveCategory(categoryId);
-		}
-	}, []);
+	const toggleSetting = useCallback(
+		(key) => {
+			updateSetting(key, !settings[key]);
+			if (key === 'serverLogging') serverLogger.setEnabled(!settings[key]);
+		},
+		[settings, updateSetting]
+	);
 
-	const handleSidebarKeyDown = useCallback((e) => {
-		if (e.keyCode === KEYS.LEFT) {
-			e.preventDefault();
-			e.stopPropagation();
-			Spotlight.focus('settings-content');
-		}
-	}, []);
-
-	const handleContentKeyDown = useCallback((e) => {
-		if (e.keyCode === KEYS.RIGHT) {
-			const target = e.target;
-			if (target.tagName !== 'INPUT') {
-				e.preventDefault();
-				e.stopPropagation();
-				Spotlight.focus(`sidebar-${activeCategory}`);
-			}
-		}
-	}, [activeCategory]);
-
-	const toggleSetting = useCallback((key) => {
-		updateSetting(key, !settings[key]);
-		if (key === 'serverLogging') {
-			serverLogger.setEnabled(!settings[key]);
-		}
-	}, [settings, updateSetting]);
+	const handleOptionSelect = useCallback(
+		(settingKey, value) => {
+			updateSetting(settingKey, value);
+			popView();
+		},
+		[updateSetting, popView]
+	);
 
 	const handleMoonfinToggle = useCallback(async () => {
 		const enabling = !settings.useMoonfinPlugin;
 		updateSetting('useMoonfinPlugin', enabling);
-
 		if (enabling) {
 			if (!serverUrl || !accessToken) {
 				setMoonfinStatus('Not connected to a Jellyfin server');
 				return;
 			}
-
 			setMoonfinConnecting(true);
 			setMoonfinStatus('Checking Moonfin plugin...');
-
 			try {
 				const result = await jellyseerr.configureWithMoonfin(serverUrl, accessToken);
 				if (result.authenticated) {
@@ -371,224 +421,13 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 		}
 	}, [settings.useMoonfinPlugin, updateSetting, serverUrl, accessToken, jellyseerr]);
 
-	const openOptionDialog = useCallback((title, options, settingKey) => {
-		setOptionDialog({title, options, settingKey});
-	}, []);
-
-	const closeOptionDialog = useCallback(() => {
-		setOptionDialog(null);
-	}, []);
-
-	const handleOptionSelect = useCallback((ev) => {
-		const value = ev.currentTarget?.dataset?.value;
-		if (optionDialog && value !== undefined) {
-			// Attempt to parse as number for numeric settings
-			const parsed = /^\d+$/.test(value) ? parseInt(value, 10) : value;
-			updateSetting(optionDialog.settingKey, parsed);
-		}
-		setOptionDialog(null);
-	}, [optionDialog, updateSetting]);
-
-	const handleSliderPositionAbsolute = useCallback((e) => {
-		updateSetting('subtitlePositionAbsolute', e.value);
-	}, [updateSetting]);
-
-	const handleSliderOpacity = useCallback((e) => {
-		updateSetting('subtitleOpacity', e.value);
-	}, [updateSetting]);
-
-	const handleSliderShadowOpacity = useCallback((e) => {
-		updateSetting('subtitleShadowOpacity', e.value);
-	}, [updateSetting]);
-
-	const handleSliderShadowBlur = useCallback((e) => {
-		updateSetting('subtitleShadowBlur', e.value);
-	}, [updateSetting]);
-
-	const handleSliderBackground = useCallback((e) => {
-		updateSetting('subtitleBackground', e.value);
-	}, [updateSetting]);
-
-	const openHomeRowsModal = useCallback(() => {
-		setTempHomeRows([...(settings.homeRows || DEFAULT_HOME_ROWS)].sort((a, b) => a.order - b.order));
-		setShowHomeRowsModal(true);
-	}, [settings.homeRows]);
-
-	const closeHomeRowsModal = useCallback(() => {
-		setShowHomeRowsModal(false);
-		setTempHomeRows([]);
-	}, []);
-
-	const saveHomeRows = useCallback(() => {
-		updateSetting('homeRows', tempHomeRows);
-		setShowHomeRowsModal(false);
-	}, [tempHomeRows, updateSetting]);
-
-	const resetHomeRows = useCallback(() => {
-		setTempHomeRows([...DEFAULT_HOME_ROWS]);
-	}, []);
-
-	const toggleHomeRow = useCallback((rowId) => {
-		setTempHomeRows(prev => prev.map(row =>
-			row.id === rowId ? {...row, enabled: !row.enabled} : row
-		));
-	}, []);
-
-	const moveHomeRowUp = useCallback((rowId) => {
-		setTempHomeRows(prev => {
-			const index = prev.findIndex(r => r.id === rowId);
-			if (index <= 0) return prev;
-			const newRows = [...prev];
-			const temp = newRows[index].order;
-			newRows[index].order = newRows[index - 1].order;
-			newRows[index - 1].order = temp;
-			return newRows.sort((a, b) => a.order - b.order);
-		});
-	}, []);
-
-	const moveHomeRowDown = useCallback((rowId) => {
-		setTempHomeRows(prev => {
-			const index = prev.findIndex(r => r.id === rowId);
-			if (index < 0 || index >= prev.length - 1) return prev;
-			const newRows = [...prev];
-			const temp = newRows[index].order;
-			newRows[index].order = newRows[index + 1].order;
-			newRows[index + 1].order = temp;
-			return newRows.sort((a, b) => a.order - b.order);
-		});
-	}, []);
-
-	const handleHomeRowToggleClick = useCallback((e) => {
-		const rowId = e.currentTarget.dataset.rowId;
-		if (rowId) toggleHomeRow(rowId);
-	}, [toggleHomeRow]);
-
-	const handleHomeRowUpClick = useCallback((e) => {
-		const rowId = e.currentTarget.dataset.rowId;
-		if (rowId) moveHomeRowUp(rowId);
-	}, [moveHomeRowUp]);
-
-	const handleHomeRowDownClick = useCallback((e) => {
-		const rowId = e.currentTarget.dataset.rowId;
-		if (rowId) moveHomeRowDown(rowId);
-	}, [moveHomeRowDown]);
-
-	// Library visibility handlers
-	const openLibraryModal = useCallback(async () => {
-		setShowLibraryModal(true);
-		setLibraryLoading(true);
-		try {
-			const isUnified = settings.unifiedLibraryMode && hasMultipleServers;
-			if (isUnified) {
-				const [allLibs, configs] = await Promise.all([
-					connectionPool.getAllLibrariesFromAllServers(),
-					connectionPool.getUserConfigFromAllServers()
-				]);
-				const libs = allLibs.filter(lib => lib.CollectionType);
-				setAllLibraries(libs);
-				setServerConfigs(configs);
-				const allExcludes = configs.reduce((acc, cfg) => {
-					return acc.concat(cfg.configuration?.MyMediaExcludes || []);
-				}, []);
-				setHiddenLibraries([...new Set(allExcludes)]);
-			} else {
-				const [viewsResult, userData] = await Promise.all([
-					api.getAllLibraries(),
-					api.getUserConfiguration()
-				]);
-				const libs = (viewsResult.Items || []).filter(lib => lib.CollectionType);
-				setAllLibraries(libs);
-				setHiddenLibraries([...(userData.Configuration?.MyMediaExcludes || [])]);
-			}
-		} catch (err) {
-			console.error('Failed to load libraries:', err);
-		} finally {
-			setLibraryLoading(false);
-		}
-	}, [api, settings.unifiedLibraryMode, hasMultipleServers]);
-
-	const closeLibraryModal = useCallback(() => {
-		setShowLibraryModal(false);
-		setAllLibraries([]);
-		setHiddenLibraries([]);
-		setServerConfigs([]);
-	}, []);
-
-	const toggleLibraryVisibility = useCallback((libraryId) => {
-		setHiddenLibraries(prev => {
-			if (prev.includes(libraryId)) {
-				return prev.filter(id => id !== libraryId);
-			}
-			return [...prev, libraryId];
-		});
-	}, []);
-
-	const handleLibraryToggleClick = useCallback((e) => {
-		const libId = e.currentTarget.dataset.libraryId;
-		if (libId) toggleLibraryVisibility(libId);
-	}, [toggleLibraryVisibility]);
-
-	const saveLibraryVisibility = useCallback(async () => {
-		setLibrarySaving(true);
-		try {
-			const isUnified = settings.unifiedLibraryMode && hasMultipleServers;
-			if (isUnified) {
-				// Group hidden library IDs by their server
-				const serverExcludes = {};
-				for (const lib of allLibraries) {
-					const key = lib._serverUrl;
-					if (!serverExcludes[key]) {
-						serverExcludes[key] = [];
-					}
-					if (hiddenLibraries.includes(lib.Id)) {
-						serverExcludes[key].push(lib.Id);
-					}
-				}
-				// Save to each server
-				const savePromises = serverConfigs.map(cfg => {
-					const excludes = serverExcludes[cfg.serverUrl] || [];
-					const updatedConfig = {
-						...cfg.configuration,
-						MyMediaExcludes: excludes
-					};
-					return connectionPool.updateUserConfigOnServer(
-						cfg.serverUrl,
-						cfg.accessToken,
-						cfg.userId,
-						updatedConfig
-					);
-				});
-				await Promise.all(savePromises);
-			} else {
-				const userData = await api.getUserConfiguration();
-				const updatedConfig = {
-					...userData.Configuration,
-					MyMediaExcludes: hiddenLibraries
-				};
-				await api.updateUserConfiguration(updatedConfig);
-			}
-			setShowLibraryModal(false);
-			setAllLibraries([]);
-			setHiddenLibraries([]);
-			setServerConfigs([]);
-			onLibrariesChanged?.();
-			window.dispatchEvent(new window.Event('moonfin:browseRefresh'));
-		} catch (err) {
-			console.error('Failed to save library visibility:', err);
-		} finally {
-			setLibrarySaving(false);
-		}
-	}, [api, hiddenLibraries, allLibraries, serverConfigs, settings.unifiedLibraryMode, hasMultipleServers, onLibrariesChanged]);
-
 	const handleMoonfinLogin = useCallback(async () => {
 		if (!moonfinUsername || !moonfinPassword) {
 			setMoonfinStatus('Please enter username and password');
 			return;
 		}
-
 		setMoonfinConnecting(true);
 		setMoonfinStatus('Logging in via Moonfin plugin...');
-
 		try {
 			await jellyseerr.loginWithMoonfin(moonfinUsername, moonfinPassword);
 			setMoonfinStatus('Connected successfully!');
@@ -602,14 +441,8 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 		}
 	}, [moonfinUsername, moonfinPassword, jellyseerr]);
 
-	const handleMoonfinUsernameChange = useCallback((e) => {
-		setMoonfinUsername(e.target.value);
-	}, []);
-
-	const handleMoonfinPasswordChange = useCallback((e) => {
-		setMoonfinPassword(e.target.value);
-	}, []);
-
+	const handleMoonfinUsernameChange = useCallback((e) => setMoonfinUsername(e.target.value), []);
+	const handleMoonfinPasswordChange = useCallback((e) => setMoonfinPassword(e.target.value), []);
 	const handleJellyseerrDisconnect = useCallback(() => {
 		jellyseerr.disable();
 		setMoonfinStatus('');
@@ -618,783 +451,919 @@ const Settings = ({onBack, onLibrariesChanged}) => {
 		setMoonfinPassword('');
 	}, [jellyseerr]);
 
-	const renderSettingItem = (title, description, value, onClick, key) => (
+	const openHomeRows = useCallback(() => {
+		setTempHomeRows([...(settings.homeRows || DEFAULT_HOME_ROWS)].sort((a, b) => a.order - b.order));
+		pushView({ view: 'homeRows', returnFocusTo: 'setting-homeRows' });
+	}, [settings.homeRows, pushView]);
+
+	const saveHomeRows = useCallback(() => {
+		updateSetting('homeRows', tempHomeRows);
+		popView();
+	}, [tempHomeRows, updateSetting, popView]);
+
+	const resetHomeRows = useCallback(() => {
+		setTempHomeRows([...DEFAULT_HOME_ROWS]);
+	}, []);
+
+	const toggleHomeRow = useCallback((rowId) => {
+		setTempHomeRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, enabled: !row.enabled } : row)));
+	}, []);
+
+	const moveHomeRowUp = useCallback((rowId) => {
+		setTempHomeRows((prev) => {
+			const index = prev.findIndex((r) => r.id === rowId);
+			if (index <= 0) return prev;
+			const newRows = [...prev];
+			const temp = newRows[index].order;
+			newRows[index].order = newRows[index - 1].order;
+			newRows[index - 1].order = temp;
+			return newRows.sort((a, b) => a.order - b.order);
+		});
+	}, []);
+
+	const moveHomeRowDown = useCallback((rowId) => {
+		setTempHomeRows((prev) => {
+			const index = prev.findIndex((r) => r.id === rowId);
+			if (index < 0 || index >= prev.length - 1) return prev;
+			const newRows = [...prev];
+			const temp = newRows[index].order;
+			newRows[index].order = newRows[index + 1].order;
+			newRows[index + 1].order = temp;
+			return newRows.sort((a, b) => a.order - b.order);
+		});
+	}, []);
+
+	const openLibraries = useCallback(async () => {
+		pushView({ view: 'libraries', returnFocusTo: 'setting-hideLibraries' });
+		setLibraryLoading(true);
+		try {
+			const isUnified = settings.unifiedLibraryMode && hasMultipleServers;
+			if (isUnified) {
+				const [allLibs, configs] = await Promise.all([
+					connectionPool.getAllLibrariesFromAllServers(),
+					connectionPool.getUserConfigFromAllServers()
+				]);
+				const libs = allLibs.filter((lib) => lib.CollectionType);
+				setAllLibraries(libs);
+				setServerConfigs(configs);
+				const allExcludes = configs.reduce((acc, cfg) => acc.concat(cfg.configuration?.MyMediaExcludes || []), []);
+				setHiddenLibraries([...new Set(allExcludes)]);
+			} else {
+				const [viewsResult, userData] = await Promise.all([api.getAllLibraries(), api.getUserConfiguration()]);
+				const libs = (viewsResult.Items || []).filter((lib) => lib.CollectionType);
+				setAllLibraries(libs);
+				setHiddenLibraries([...(userData.Configuration?.MyMediaExcludes || [])]);
+			}
+		} catch (err) {
+			console.error('Failed to load libraries:', err);
+		} finally {
+			setLibraryLoading(false);
+		}
+	}, [api, settings.unifiedLibraryMode, hasMultipleServers, pushView]);
+
+	const toggleLibraryVisibility = useCallback((libraryId) => {
+		setHiddenLibraries((prev) => {
+			if (prev.includes(libraryId)) return prev.filter((id) => id !== libraryId);
+			return [...prev, libraryId];
+		});
+	}, []);
+
+	const saveLibraryVisibility = useCallback(async () => {
+		setLibrarySaving(true);
+		try {
+			const isUnified = settings.unifiedLibraryMode && hasMultipleServers;
+			if (isUnified) {
+				const serverExcludes = {};
+				for (const lib of allLibraries) {
+					const key = lib._serverUrl;
+					if (!serverExcludes[key]) serverExcludes[key] = [];
+					if (hiddenLibraries.includes(lib.Id)) serverExcludes[key].push(lib.Id);
+				}
+				const savePromises = serverConfigs.map((cfg) => {
+					const excludes = serverExcludes[cfg.serverUrl] || [];
+					const updatedConfig = { ...cfg.configuration, MyMediaExcludes: excludes };
+					return connectionPool.updateUserConfigOnServer(cfg.serverUrl, cfg.accessToken, cfg.userId, updatedConfig);
+				});
+				await Promise.all(savePromises);
+			} else {
+				const userData = await api.getUserConfiguration();
+				const updatedConfig = { ...userData.Configuration, MyMediaExcludes: hiddenLibraries };
+				await api.updateUserConfiguration(updatedConfig);
+			}
+			popView();
+			setAllLibraries([]);
+			setHiddenLibraries([]);
+			setServerConfigs([]);
+			onLibrariesChanged?.();
+			window.dispatchEvent(new window.Event('moonfin:browseRefresh'));
+		} catch (err) {
+			console.error('Failed to save library visibility:', err);
+		} finally {
+			setLibrarySaving(false);
+		}
+	}, [
+		api,
+		hiddenLibraries,
+		allLibraries,
+		serverConfigs,
+		settings.unifiedLibraryMode,
+		hasMultipleServers,
+		onLibrariesChanged,
+		popView
+	]);
+
+	const renderToggle = (isOn) => (
+		<div className={`${css.toggleTrack} ${isOn ? css.toggleOn : ''}`}>
+			<div className={css.toggleThumb} />
+		</div>
+	);
+
+	const renderRadio = (isSelected) => (
+		<div className={`${css.radioOuter} ${isSelected ? css.radioSelected : ''}`}>
+			<div className={css.radioInner} />
+		</div>
+	);
+
+	const renderChevron = () => (
+		<div className={css.chevronIcon}>
+			<IconChevron />
+		</div>
+	);
+
+	const handleListFocus = useCallback((e) => {
+		const target = e.target;
+		const scrollContainer = e.currentTarget;
+		if (!target || !scrollContainer) return;
+		const containerRect = scrollContainer.getBoundingClientRect();
+		const targetRect = target.getBoundingClientRect();
+		if (targetRect.bottom > containerRect.bottom - 20) {
+			scrollContainer.scrollTop += targetRect.bottom - containerRect.bottom + 60;
+		} else if (targetRect.top < containerRect.top + 20) {
+			scrollContainer.scrollTop -= containerRect.top - targetRect.top + 60;
+		}
+	}, []);
+
+	const renderSectionTitle = (title) => <div className={css.sectionTitle}>{title}</div>;
+
+	const renderOptionItem = (settingKey, title, options, fallback) => (
 		<SpottableDiv
-			key={key}
-			className={css.settingItem}
-			onClick={onClick}
-			spotlightId={key}
+			className={css.listItem}
+			onClick={() => pushView({ view: 'options', title, options, settingKey, returnFocusTo: `setting-${settingKey}` })}
+			spotlightId={`setting-${settingKey}`}
 		>
-			<div className={css.settingLabel}>
-				<div className={css.settingTitle}>{title}</div>
-				{description && <div className={css.settingDescription}>{description}</div>}
+			<div className={css.listItemBody}>
+				<div className={css.listItemHeading}>{title}</div>
+				<div className={css.listItemCaption}>{getLabel(options, settings[settingKey], fallback)}</div>
 			</div>
-			<div className={css.settingValue}>{value}</div>
+			<div className={css.listItemTrailing}>{renderChevron()}</div>
 		</SpottableDiv>
 	);
 
-	const renderToggleItem = (title, description, settingKey) => (
-		renderSettingItem(
-			title,
-			description,
-			settings[settingKey] ? 'On' : 'Off',
-			() => toggleSetting(settingKey),
-			`setting-${settingKey}`
-		)
+	const renderToggleItem = (settingKey, title, desc) => (
+		<SpottableDiv
+			className={css.listItem}
+			onClick={() => toggleSetting(settingKey)}
+			spotlightId={`setting-${settingKey}`}
+		>
+			<div className={css.listItemBody}>
+				<div className={css.listItemHeading}>{title}</div>
+				{desc && <div className={css.listItemCaption}>{desc}</div>}
+			</div>
+			<div className={css.listItemTrailing}>{renderToggle(settings[settingKey])}</div>
+		</SpottableDiv>
 	);
 
-	const renderGeneralPanel = () => (
-		<div className={css.panel}>
-			<h1>General Settings</h1>
-			<div className={css.settingsGroup}>
-				<h2>Application</h2>
-				{renderSettingItem('Clock Display', 'Show clock in the interface',
-					getLabel(CLOCK_DISPLAY_OPTIONS, settings.clockDisplay, '24-Hour'),
-					() => openOptionDialog('Clock Display', CLOCK_DISPLAY_OPTIONS, 'clockDisplay'),
-					'setting-clockDisplay'
-				)}
-				{renderToggleItem('Show Clock', 'Show or hide Clock on Home Screen', 'showClock')}
-				{renderToggleItem('Auto Login', 'Automatically sign in on app launch', 'autoLogin')}
+	const renderNavItem = (id, title, desc, onClick) => (
+		<SpottableDiv className={css.listItem} onClick={onClick} spotlightId={`setting-${id}`}>
+			<div className={css.listItemBody}>
+				<div className={css.listItemHeading}>{title}</div>
+				{desc && <div className={css.listItemCaption}>{desc}</div>}
 			</div>
-			{hasMultipleServers && (
-				<div className={css.settingsGroup}>
-					<h2>Multi-Server</h2>
-					{renderToggleItem('Unified Library Mode', 'Combine content from all servers into a single view', 'unifiedLibraryMode')}
-				</div>
-			)}
-			<div className={css.settingsGroup}>
-				<h2>Navigation Bar</h2>
-				{renderSettingItem('Navigation Style', 'Position of navigation: top bar or left sidebar',
-					getLabel(NAV_POSITION_OPTIONS, settings.navbarPosition, 'Top Bar'),
-					() => openOptionDialog('Navigation Style', NAV_POSITION_OPTIONS, 'navbarPosition'),
-					'setting-navbarPosition'
-				)}
-				{renderToggleItem('Show Shuffle Button', 'Show shuffle button in navigation bar', 'showShuffleButton')}
-				{settings.showShuffleButton && renderSettingItem('Shuffle Content Type', 'Type of content to shuffle',
-					getLabel(CONTENT_TYPE_OPTIONS, settings.shuffleContentType, 'Movies & TV Shows'),
-					() => openOptionDialog('Shuffle Content Type', CONTENT_TYPE_OPTIONS, 'shuffleContentType'),
-					'setting-shuffleContentType'
-				)}
-				{renderToggleItem('Show Genres Button', 'Show genres button in navigation bar', 'showGenresButton')}
-				{renderToggleItem('Show Favorites Button', 'Show favorites button in navigation bar', 'showFavoritesButton')}
-				{renderToggleItem('Show Libraries in Toolbar', 'Show expandable library shortcuts in navigation bar', 'showLibrariesInToolbar')}
+			<div className={css.listItemTrailing}>{renderChevron()}</div>
+		</SpottableDiv>
+	);
+
+	const renderInfoItem = (id, label, value) => (
+		<SpottableDiv className={css.listItem} spotlightId={`info-${id}`}>
+			<div className={css.listItemBody}>
+				<div className={css.listItemHeading}>{label}</div>
 			</div>
-			<div className={css.settingsGroup}>
-				<h2>Home Screen</h2>
-				{renderToggleItem('Merge Continue Watching & Next Up', 'Combine into a single row', 'mergeContinueWatchingNextUp')}
-				{renderSettingItem('Configure Home Rows', 'Customize which rows appear on home screen',
-					'Edit...', openHomeRowsModal, 'setting-homeRows'
-				)}
-				{renderSettingItem('Hide Libraries', 'Choose which libraries to hide (syncs across all Jellyfin clients)',
-					'Edit...', openLibraryModal, 'setting-hideLibraries'
-				)}
+			<div className={css.listItemValue}>{value}</div>
+		</SpottableDiv>
+	);
+
+	const renderSliderItem = (settingKey, title, min, max, step, format) => (
+		<div className={css.sliderContainer}>
+			<div className={css.sliderLabel}>
+				<span className={css.sliderTitle}>{title}</span>
+				<span className={css.sliderValue}>{format ? format(settings[settingKey]) : settings[settingKey]}</span>
 			</div>
+			<Slider
+				min={min}
+				max={max}
+				step={step}
+				value={settings[settingKey]}
+				onChange={(e) => updateSetting(settingKey, e.value)}
+				className={css.settingsSlider}
+				tooltip={false}
+				spotlightId={`setting-${settingKey}`}
+			/>
 		</div>
 	);
 
-	const renderPlaybackPanel = () => (
-		<div className={css.panel}>
-			<h1>Playback Settings</h1>
-			<div className={css.settingsGroup}>
-				<h2>Video</h2>
-				{renderToggleItem('Skip Intro', 'Automatically skip intros when detected', 'skipIntro')}
-				{renderToggleItem('Skip Credits', 'Automatically skip credits', 'skipCredits')}
-				{renderToggleItem('Auto Play Next', 'Automatically play the next episode', 'autoPlay')}
-				{renderSettingItem('Maximum Bitrate', 'Limit streaming quality',
-					getLabel(BITRATE_OPTIONS, settings.maxBitrate, 'Auto'),
-					() => openOptionDialog('Maximum Bitrate', BITRATE_OPTIONS, 'maxBitrate'),
-					'setting-bitrate'
+	const renderGeneralApplication = () => (
+		<>
+			{renderOptionItem('clockDisplay', 'Clock Display', CLOCK_DISPLAY_OPTIONS, '24-Hour')}
+			{renderToggleItem('showClock', 'Show Clock', 'Show or hide clock on home screen')}
+			{renderToggleItem('autoLogin', 'Auto Login', 'Automatically sign in on app launch')}
+			{renderOptionItem('watchedIndicatorBehavior', 'Watched Indicators', WATCHED_INDICATOR_OPTIONS, 'Always')}
+		</>
+	);
+
+	const renderGeneralMultiServer = () => (
+		<>
+			{renderToggleItem(
+				'unifiedLibraryMode',
+				'Unified Library Mode',
+				'Combine content from all servers into a single view'
+			)}
+		</>
+	);
+
+	const renderGeneralNavbar = () => (
+		<>
+			{renderOptionItem('navbarPosition', 'Navigation Style', NAV_POSITION_OPTIONS, 'Top Bar')}
+			{renderToggleItem('showShuffleButton', 'Show Shuffle Button', 'Show shuffle button in navigation bar')}
+			{settings.showShuffleButton &&
+				renderOptionItem('shuffleContentType', 'Shuffle Content Type', CONTENT_TYPE_OPTIONS, 'Movies & TV Shows')}
+			{renderToggleItem('showGenresButton', 'Show Genres Button', 'Show genres button in navigation bar')}
+			{renderToggleItem('showFavoritesButton', 'Show Favorites Button', 'Show favorites button in navigation bar')}
+			{renderToggleItem(
+				'showLibrariesInToolbar',
+				'Show Libraries in Toolbar',
+				'Show library shortcuts in navigation bar'
+			)}
+		</>
+	);
+
+	const renderGeneralHomeScreen = () => (
+		<>
+			{renderToggleItem(
+				'mergeContinueWatchingNextUp',
+				'Merge Continue Watching & Next Up',
+				'Combine into a single row'
+			)}
+			{renderToggleItem(
+				'useSeriesThumbnails',
+				'Use Series Thumbnails',
+				'Show series artwork instead of individual episode images'
+			)}
+			{renderOptionItem('homeRowsPosterSize', 'Poster Size', POSTER_SIZE_OPTIONS, 'Default')}
+			{renderOptionItem('homeRowsImageType', 'Image Type', IMAGE_TYPE_OPTIONS, 'Poster')}
+			{renderNavItem('homeRows', 'Configure Home Rows', 'Customize which rows appear on home screen', openHomeRows)}
+			{renderNavItem(
+				'hideLibraries',
+				'Hide Libraries',
+				'Choose which libraries to hide (syncs across all clients)',
+				openLibraries
+			)}
+		</>
+	);
+
+	const renderPlaybackVideo = () => (
+		<>
+			{renderOptionItem('introAction', 'Intro Action', MEDIA_SEGMENT_ACTION_OPTIONS, 'Ask to Skip')}
+			{renderOptionItem('outroAction', 'Outro Action', MEDIA_SEGMENT_ACTION_OPTIONS, 'Ask to Skip')}
+			{renderToggleItem('autoPlay', 'Auto Play Next', 'Automatically play the next episode')}
+			{renderOptionItem('maxBitrate', 'Maximum Bitrate', BITRATE_OPTIONS, 'Auto')}
+			{renderOptionItem('seekStep', 'Seek Step', SEEK_STEP_OPTIONS, '10 seconds')}
+			{renderSliderItem('skipForwardLength', 'Skip Forward Length', 5, 30, 5, (v) => `${v}s`)}
+			{renderSliderItem('unpauseRewind', 'Unpause Rewind', 0, 10, 1, (v) => (v === 0 ? 'Off' : `${v}s`))}
+			{renderToggleItem('showDescriptionOnPause', 'Show Description on Pause', 'Display item description when paused')}
+			<div className={css.divider} />
+			{renderToggleItem('preferTranscode', 'Prefer Transcoding', 'Request transcoded streams when available')}
+			{renderToggleItem(
+				'forceDirectPlay',
+				'Force Direct Play',
+				'Skip codec checks and always attempt DirectPlay (debug)'
+			)}
+		</>
+	);
+
+	const renderPlaybackSubtitles = () => (
+		<>
+			{renderOptionItem('subtitleSize', 'Subtitle Size', SUBTITLE_SIZE_OPTIONS, 'Medium')}
+			{renderOptionItem('subtitlePosition', 'Subtitle Position', SUBTITLE_POSITION_OPTIONS, 'Bottom')}
+			{settings.subtitlePosition === 'absolute' &&
+				renderSliderItem('subtitlePositionAbsolute', 'Absolute Position', 0, 100, 5, (v) => `${v}%`)}
+			{renderSliderItem('subtitleOpacity', 'Text Opacity', 0, 100, 5, (v) => `${v}%`)}
+			{renderOptionItem('subtitleColor', 'Text Color', SUBTITLE_COLOR_OPTIONS, 'White')}
+			<div className={css.divider} />
+			{renderOptionItem('subtitleShadowColor', 'Shadow Color', SUBTITLE_SHADOW_COLOR_OPTIONS, 'Black')}
+			{renderSliderItem('subtitleShadowOpacity', 'Shadow Opacity', 0, 100, 5, (v) => `${v}%`)}
+			{renderSliderItem('subtitleShadowBlur', 'Shadow Size (Blur)', 0, 1, 0.1, (v) => (v || 0.1).toFixed(1))}
+			<div className={css.divider} />
+			{renderOptionItem('subtitleBackgroundColor', 'Background Color', SUBTITLE_BACKGROUND_COLOR_OPTIONS, 'Black')}
+			{renderSliderItem('subtitleBackground', 'Background Opacity', 0, 100, 5, (v) => `${v}%`)}
+		</>
+	);
+
+	const renderDisplayBackdrop = () => (
+		<>
+			{renderToggleItem(
+				'showHomeBackdrop',
+				'Home Row Backdrops',
+				'Show background art when browsing rows on the home screen'
+			)}
+			{renderOptionItem('backdropBlurHome', 'Home Backdrop Blur', BLUR_OPTIONS, 'Medium')}
+			{renderOptionItem('backdropBlurDetail', 'Details Backdrop Blur', BLUR_OPTIONS, 'Medium')}
+		</>
+	);
+
+	const renderDisplayUI = () => (
+		<>
+			{renderOptionItem('uiOpacity', 'UI Opacity', UI_OPACITY_OPTIONS, '85%')}
+			{renderOptionItem('userOpacity', 'User Avatar Opacity', USER_OPACITY_OPTIONS, '85%')}
+			{renderOptionItem('uiColor', 'UI Color', UI_COLOR_OPTIONS, 'Gray')}
+			{renderOptionItem('focusColor', 'Focus Color', FOCUS_COLOR_OPTIONS, 'Blue')}
+			{renderToggleItem('cardFocusZoom', 'Card Focus Zoom', 'Slightly enlarge cards when focused')}
+		</>
+	);
+
+	const renderDisplayFeatured = () => (
+		<>
+			{renderToggleItem('showFeaturedBar', 'Show Featured Bar', 'Display the featured media bar on home screen')}
+			{renderOptionItem('featuredContentType', 'Content Type', CONTENT_TYPE_OPTIONS, 'Movies & TV Shows')}
+			{renderOptionItem('featuredItemCount', 'Item Count', FEATURED_ITEM_COUNT_OPTIONS, '10 items')}
+			{renderToggleItem(
+				'featuredTrailerPreview',
+				'Trailer Preview',
+				'Automatically play trailer previews in the featured media bar'
+			)}
+			{settings.featuredTrailerPreview &&
+				renderToggleItem('featuredTrailerMuted', 'Mute Trailers', 'Mute trailer previews in the featured media bar')}
+		</>
+	);
+
+	const renderPlaybackNextUp = () => (
+		<>
+			{renderOptionItem('nextUpBehavior', 'Next Up Behavior', NEXT_UP_BEHAVIOR_OPTIONS, 'Extended')}
+			{settings.nextUpBehavior !== 'disabled' &&
+				renderSliderItem('nextUpTimeout', 'Countdown Timer', 0, 30, 1, (v) => (v === 0 ? 'Instant' : `${v}s`))}
+		</>
+	);
+
+	const renderDisplayThemes = () => (
+		<>
+			{renderOptionItem('seasonalTheme', 'Seasonal Effect', SEASONAL_THEME_OPTIONS, 'None')}
+			{renderToggleItem('themeMusicEnabled', 'Theme Music', 'Play background music on detail pages')}
+			{settings.themeMusicEnabled &&
+				renderSliderItem('themeMusicVolume', 'Theme Music Volume', 0, 100, 5, (v) => `${v}%`)}
+			{settings.themeMusicEnabled &&
+				renderToggleItem(
+					'themeMusicOnHomeRows',
+					'Theme Music on Home Rows',
+					'Play theme music when browsing home screen items'
 				)}
-				{renderSettingItem('Seek Step', 'Seconds to skip when seeking',
-					getLabel(SEEK_STEP_OPTIONS, settings.seekStep, '10 seconds'),
-					() => openOptionDialog('Seek Step', SEEK_STEP_OPTIONS, 'seekStep'),
-					'setting-seekStep'
-				)}
-				<div className={css.divider} />
-				{renderToggleItem('Prefer Transcoding', 'Request transcoded streams when available', 'preferTranscode')}
-				{renderToggleItem('Force Direct Play', 'Skip codec checks and always attempt DirectPlay (debug)', 'forceDirectPlay')}
-			</div>
-			<div className={css.settingsGroup}>
-				<h2>Subtitles</h2>
-				{renderSettingItem('Subtitle Size', 'Size of subtitle text',
-					getLabel(SUBTITLE_SIZE_OPTIONS, settings.subtitleSize, 'Medium'),
-					() => openOptionDialog('Subtitle Size', SUBTITLE_SIZE_OPTIONS, 'subtitleSize'),
-					'setting-subtitleSize'
-				)}
-				{renderSettingItem('Subtitle Position', 'Vertical position of subtitles',
-					getLabel(SUBTITLE_POSITION_OPTIONS, settings.subtitlePosition, 'Bottom'),
-					() => openOptionDialog('Subtitle Position', SUBTITLE_POSITION_OPTIONS, 'subtitlePosition'),
-					'setting-subtitlePosition'
-				)}
-				{settings.subtitlePosition === 'absolute' && (
-					<div className={css.sliderItem}>
-						<div className={css.sliderLabel}>
-							<span>Absolute Position</span>
-							<span className={css.sliderValue}>{settings.subtitlePositionAbsolute}%</span>
-						</div>
-						<Slider
-							min={0}
-							max={100}
-							step={5}
-							value={settings.subtitlePositionAbsolute}
-							onChange={handleSliderPositionAbsolute}
-							className={css.settingsSlider}
-							tooltip={false}
-							spotlightId="setting-subtitlePositionAbsolute"
+		</>
+	);
+
+	const renderDisplayScreensaver = () => (
+		<>
+			{renderToggleItem(
+				'screensaverEnabled',
+				'Enable Screensaver',
+				'Reduce brightness after inactivity to prevent screen burn-in'
+			)}
+			{settings.screensaverEnabled &&
+				renderOptionItem('screensaverMode', 'Screensaver Type', SCREENSAVER_MODE_OPTIONS, 'Library Backdrops')}
+			{settings.screensaverEnabled &&
+				renderOptionItem('screensaverTimeout', 'Timeout', SCREENSAVER_TIMEOUT_OPTIONS, '90 seconds')}
+			{settings.screensaverEnabled &&
+				renderOptionItem('screensaverDimmingLevel', 'Dimming Level', SCREENSAVER_DIMMING_OPTIONS, '50%')}
+			{settings.screensaverEnabled &&
+				renderToggleItem('screensaverShowClock', 'Show Clock', 'Display a moving clock during screensaver')}
+			{settings.screensaverEnabled &&
+				renderToggleItem('screensaverAgeFilter', 'Age Rating Filter', 'Only show age-appropriate backdrops')}
+			{settings.screensaverEnabled &&
+				settings.screensaverAgeFilter &&
+				renderOptionItem('screensaverMaxRating', 'Max Rating', AGE_RATING_OPTIONS, 'PG-13')}
+		</>
+	);
+
+	const renderPluginMoonfin = () => (
+		<>
+			<SpottableDiv className={css.listItem} onClick={handleMoonfinToggle} spotlightId='setting-useMoonfinPlugin'>
+				<div className={css.listItemBody}>
+					<div className={css.listItemHeading}>Enable Plugin</div>
+					<div className={css.listItemCaption}>Connect for ratings, sync, and {seerrLabel} proxy</div>
+				</div>
+				<div className={css.listItemTrailing}>{renderToggle(settings.useMoonfinPlugin)}</div>
+			</SpottableDiv>
+			{settings.useMoonfinPlugin && moonfinStatus && <div className={css.statusMessage}>{moonfinStatus}</div>}
+			{settings.useMoonfinPlugin && moonfinLoginMode && (
+				<>
+					<div className={css.inputGroup}>
+						<label>{seerrLabel} Username</label>
+						<SpottableInput
+							type='text'
+							placeholder={`Enter ${seerrLabel} username`}
+							value={moonfinUsername}
+							onChange={handleMoonfinUsernameChange}
+							className={css.input}
+							spotlightId='moonfin-username'
 						/>
 					</div>
-				)}
-				<div className={css.sliderItem}>
-					<div className={css.sliderLabel}>
-						<span>Text Opacity</span>
-						<span className={css.sliderValue}>{settings.subtitleOpacity}%</span>
+					<div className={css.inputGroup}>
+						<label>{seerrLabel} Password</label>
+						<SpottableInput
+							type='password'
+							placeholder={`Enter ${seerrLabel} password`}
+							value={moonfinPassword}
+							onChange={handleMoonfinPasswordChange}
+							className={css.input}
+							spotlightId='moonfin-password'
+						/>
 					</div>
-					<Slider
-						min={0}
-						max={100}
-						step={5}
-						value={settings.subtitleOpacity}
-						onChange={handleSliderOpacity}
-						className={css.settingsSlider}
-						tooltip={false}
-						spotlightId="setting-subtitleOpacity"
-					/>
-				</div>
-				{renderSettingItem('Text Color', 'Color of subtitle text',
-					getLabel(SUBTITLE_COLOR_OPTIONS, settings.subtitleColor, 'White'),
-					() => openOptionDialog('Text Color', SUBTITLE_COLOR_OPTIONS, 'subtitleColor'),
-					'setting-subtitleColor'
-				)}
-
-				<div className={css.divider} />
-
-				{renderSettingItem('Shadow Color', 'Color of subtitle shadow',
-					getLabel(SUBTITLE_SHADOW_COLOR_OPTIONS, settings.subtitleShadowColor, 'Black'),
-					() => openOptionDialog('Shadow Color', SUBTITLE_SHADOW_COLOR_OPTIONS, 'subtitleShadowColor'),
-					'setting-subtitleShadowColor'
-				)}
-				<div className={css.sliderItem}>
-					<div className={css.sliderLabel}>
-						<span>Shadow Opacity</span>
-						<span className={css.sliderValue}>{settings.subtitleShadowOpacity}%</span>
+					<div className={css.actionBarInline}>
+						<SpottableButton
+							className={css.actionButton}
+							onClick={handleMoonfinLogin}
+							disabled={moonfinConnecting}
+							spotlightId='moonfin-login-submit'
+						>
+							{moonfinConnecting ? 'Logging in...' : 'Log In'}
+						</SpottableButton>
 					</div>
-					<Slider
-						min={0}
-						max={100}
-						step={5}
-						value={settings.subtitleShadowOpacity}
-						onChange={handleSliderShadowOpacity}
-						className={css.settingsSlider}
-						tooltip={false}
-						spotlightId="setting-subtitleShadowOpacity"
-					/>
+				</>
+			)}
+			{!settings.useMoonfinPlugin && (
+				<div className={css.authHint}>
+					Enable the Moonfin plugin to access ratings, settings sync, and {seerrLabel} proxy features. The plugin must
+					be installed on your Jellyfin server.
 				</div>
-				<div className={css.sliderItem}>
-					<div className={css.sliderLabel}>
-						<span>Shadow Size (Blur)</span>
-						<span className={css.sliderValue}>{settings.subtitleShadowBlur ? settings.subtitleShadowBlur.toFixed(1) : '0.1'}</span>
-					</div>
-					<Slider
-						min={0}
-						max={1}
-						step={0.1}
-						value={settings.subtitleShadowBlur || 0.1}
-						onChange={handleSliderShadowBlur}
-						className={css.settingsSlider}
-						tooltip={false}
-						spotlightId="setting-subtitleShadowBlur"
-					/>
-				</div>
-
-				<div className={css.divider} />
-
-				{renderSettingItem('Background Color', 'Color of subtitle background',
-					getLabel(SUBTITLE_BACKGROUND_COLOR_OPTIONS, settings.subtitleBackgroundColor, 'Black'),
-					() => openOptionDialog('Background Color', SUBTITLE_BACKGROUND_COLOR_OPTIONS, 'subtitleBackgroundColor'),
-					'setting-subtitleBackgroundColor'
-				)}
-				<div className={css.sliderItem}>
-					<div className={css.sliderLabel}>
-						<span>Background Opacity</span>
-						<span className={css.sliderValue}>{settings.subtitleBackground}%</span>
-					</div>
-					<Slider
-						min={0}
-						max={100}
-						step={5}
-						value={settings.subtitleBackground}
-						onChange={handleSliderBackground}
-						className={css.settingsSlider}
-						tooltip={false}
-						spotlightId="setting-subtitleBackground"
-					/>
-				</div>
-			</div>
-		</div>
+			)}
+		</>
 	);
 
-	const renderDisplayPanel = () => (
-		<div className={css.panel}>
-			<h1>Display Settings</h1>
-			<div className={css.settingsGroup}>
-				<h2>Backdrop</h2>
-				{renderToggleItem('Home Row Backdrops', 'Show background art when browsing rows on the home screen', 'showHomeBackdrop')}
-				{renderSettingItem('Home Backdrop Blur', 'Amount of blur on home screen backdrop',
-					getLabel(BLUR_OPTIONS, settings.backdropBlurHome, 'Medium'),
-					() => openOptionDialog('Home Backdrop Blur', BLUR_OPTIONS, 'backdropBlurHome'),
-					'setting-backdropBlurHome'
-				)}
-				{renderSettingItem('Details Backdrop Blur', 'Amount of blur on details page backdrop',
-					getLabel(BLUR_OPTIONS, settings.backdropBlurDetail, 'Medium'),
-					() => openOptionDialog('Details Backdrop Blur', BLUR_OPTIONS, 'backdropBlurDetail'),
-					'setting-backdropBlurDetail'
-				)}
-			</div>
-			<div className={css.settingsGroup}>
-				<h2>UI Elements</h2>
-				{renderSettingItem('UI Opacity', 'Background opacity of navbar and UI panels',
-					getLabel(UI_OPACITY_OPTIONS, settings.uiOpacity, '85%'),
-					() => openOptionDialog('UI Opacity', UI_OPACITY_OPTIONS, 'uiOpacity'),
-					'setting-uiOpacity'
-				)}
-				{renderSettingItem('User Avatar Opacity', 'Opacity of User Avatar on top left',
-					getLabel(USER_OPACITY_OPTIONS, settings.userOpacity, '85%'),
-					() => openOptionDialog('User Avatar Opacity', USER_OPACITY_OPTIONS, 'userOpacity'),
-					'setting-userOpacity'
-				)}
-				{renderSettingItem('UI Color', 'Background color of navbar and UI panels',
-					getLabel(UI_COLOR_OPTIONS, settings.uiColor, 'Dark Gray'),
-					() => openOptionDialog('UI Color', UI_COLOR_OPTIONS, 'uiColor'),
-					'setting-uiColor'
-				)}
-			</div>
-			<div className={css.settingsGroup}>
-				<h2>Featured Media Bar</h2>
-				{renderToggleItem('Show Featured Bar', 'Display the featured media bar on home screen', 'showFeaturedBar')}
-				{renderSettingItem('Content Type', 'Type of content to display in the featured media bar',
-					getLabel(CONTENT_TYPE_OPTIONS, settings.featuredContentType, 'Movies & TV Shows'),
-					() => openOptionDialog('Content Type', CONTENT_TYPE_OPTIONS, 'featuredContentType'),
-					'setting-featuredContentType'
-				)}
-				{renderSettingItem('Item Count', 'Number of items in the featured media bar',
-					getLabel(FEATURED_ITEM_COUNT_OPTIONS, settings.featuredItemCount, '10 items'),
-					() => openOptionDialog('Item Count', FEATURED_ITEM_COUNT_OPTIONS, 'featuredItemCount'),
-					'setting-featuredItemCount'
-				)}
-				{renderToggleItem('Trailer Preview', 'Automatically play trailer previews in the featured media bar background', 'featuredTrailerPreview')}
-				{settings.featuredTrailerPreview && renderToggleItem('Mute Trailers', 'Mute trailer previews in the featured media bar', 'featuredTrailerMuted')}
-			</div>
-			<div className={css.settingsGroup}>
-				<h2>Screensaver</h2>
-				{renderToggleItem('Enable Screensaver', 'Reduce brightness after inactivity to prevent screen burn-in', 'screensaverEnabled')}
-				{settings.screensaverEnabled && renderSettingItem('Screensaver Type', 'Choose between library backdrops or bouncing logo',
-					getLabel(SCREENSAVER_MODE_OPTIONS, settings.screensaverMode, 'Library Backdrops'),
-					() => openOptionDialog('Screensaver Type', SCREENSAVER_MODE_OPTIONS, 'screensaverMode'),
-					'setting-screensaverMode'
-				)}
-				{settings.screensaverEnabled && renderSettingItem('Timeout', 'Time of inactivity before screensaver activates',
-					getLabel(SCREENSAVER_TIMEOUT_OPTIONS, settings.screensaverTimeout, '90 seconds'),
-					() => openOptionDialog('Screensaver Timeout', SCREENSAVER_TIMEOUT_OPTIONS, 'screensaverTimeout'),
-					'setting-screensaverTimeout'
-				)}
-				{settings.screensaverEnabled && renderSettingItem('Dimming Level', 'Background dimming intensity during screensaver',
-					getLabel(SCREENSAVER_DIMMING_OPTIONS, settings.screensaverDimmingLevel, '50%'),
-					() => openOptionDialog('Dimming Level', SCREENSAVER_DIMMING_OPTIONS, 'screensaverDimmingLevel'),
-					'setting-screensaverDimmingLevel'
-				)}
-				{settings.screensaverEnabled && renderToggleItem('Show Clock', 'Display a moving clock during screensaver', 'screensaverShowClock')}
-			</div>
-		</div>
-	);
-
-	const renderPluginPanel = () => {
+	const renderPluginStatus = () => {
 		const info = jellyseerr.pluginInfo;
-		const isConnected = settings.useMoonfinPlugin && info;
-
 		return (
-			<div className={css.panel}>
-				<h1>Plugin Settings</h1>
-
-				<div className={css.settingsGroup}>
-					<h2>Moonfin Plugin</h2>
-					{renderSettingItem(
-						'Enable Plugin',
-						'Connect to the Moonfin server plugin for ratings, settings sync, and Jellyseerr/Seerr proxy',
-						settings.useMoonfinPlugin ? 'On' : 'Off',
-						handleMoonfinToggle,
-						'setting-useMoonfinPlugin'
-					)}
-
-					{settings.useMoonfinPlugin && moonfinStatus && (
-						<div className={css.statusMessage}>{moonfinStatus}</div>
-					)}
-
-					{settings.useMoonfinPlugin && moonfinLoginMode && (
-						<>
-							<div className={css.inputGroup}>
-								<label>{seerrLabel} Username</label>
-								<SpottableInput
-									type="text"
-									placeholder={`Enter ${seerrLabel} username`}
-									value={moonfinUsername}
-									onChange={handleMoonfinUsernameChange}
-									className={css.input}
-									spotlightId="moonfin-username"
-								/>
-							</div>
-							<div className={css.inputGroup}>
-								<label>{seerrLabel} Password</label>
-								<SpottableInput
-									type="password"
-									placeholder={`Enter ${seerrLabel} password`}
-									value={moonfinPassword}
-									onChange={handleMoonfinPasswordChange}
-									className={css.input}
-									spotlightId="moonfin-password"
-								/>
-							</div>
-							<SpottableButton
-								className={css.actionButton}
-								onClick={handleMoonfinLogin}
-								disabled={moonfinConnecting}
-								spotlightId="moonfin-login-submit"
-							>
-								{moonfinConnecting ? 'Logging in...' : 'Log In'}
-							</SpottableButton>
-						</>
-					)}
-				</div>
-
-				{isConnected && (
-					<div className={css.settingsGroup}>
-						<h2>Plugin Status</h2>
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>Plugin Version</span>
-							<span className={css.infoValue}>{info.version || 'Unknown'}</span>
-						</SpottableDiv>
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>Settings Sync</span>
-							<span className={css.infoValue}>{info.settingsSyncEnabled ? 'Available' : 'Not Available'}</span>
-						</SpottableDiv>
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>{seerrLabel}</span>
-							<span className={css.infoValue}>
-								{info.jellyseerrEnabled ? 'Enabled by Admin' : 'Disabled by Admin'}
-							</span>
-						</SpottableDiv>
-						{isSeerr && (
-							<SpottableDiv className={css.infoItem} tabIndex={0}>
-								<span className={css.infoLabel}>Detected Variant</span>
-								<span className={css.infoValue}>{seerrLabel} (Seerr v3+)</span>
-							</SpottableDiv>
-						)}
-					</div>
-				)}
-
-				{isConnected && (
-					<div className={css.settingsGroup}>
-						<h2>MDBList Ratings</h2>
-						{renderToggleItem('Enable Ratings', 'Show MDBList ratings on media details and featured bar', 'mdblistEnabled')}
-					</div>
-				)}
-
-				{isConnected && (
-					<div className={css.settingsGroup}>
-						<h2>TMDB</h2>
-						{renderToggleItem('Episode Ratings', 'Show TMDB ratings on individual episodes', 'tmdbEpisodeRatingsEnabled')}
-					</div>
-				)}
-
-				{!settings.useMoonfinPlugin && (
-					<div className={css.settingsGroup}>
-						<p className={css.authHint}>
-							Enable the Moonfin plugin to access ratings, settings sync,
-							and {seerrLabel} proxy features. The plugin must be installed
-							on your Jellyfin server.
-						</p>
-					</div>
-				)}
-
-				{isConnected && (
-					<div className={css.settingsGroup}>
-						<h2>{seerrLabel}</h2>
-						{jellyseerr.isEnabled && jellyseerr.isAuthenticated && jellyseerr.isMoonfin ? (
-							<>
-								<div className={css.infoItem}>
-									<span className={css.infoLabel}>Status</span>
-									<span className={css.infoValue}>Connected via Moonfin</span>
-								</div>
-								{jellyseerr.serverUrl && (
-									<div className={css.infoItem}>
-										<span className={css.infoLabel}>{seerrLabel} URL</span>
-										<span className={css.infoValue}>{jellyseerr.serverUrl}</span>
-									</div>
-								)}
-								{jellyseerr.user && (
-									<div className={css.infoItem}>
-										<span className={css.infoLabel}>User</span>
-										<span className={css.infoValue}>
-											{jellyseerr.user.displayName || 'Moonfin User'}
-										</span>
-									</div>
-								)}
-								<SpottableButton
-									className={css.actionButton}
-									onClick={handleJellyseerrDisconnect}
-									spotlightId="jellyseerr-disconnect"
-								>
-									Disconnect
-								</SpottableButton>
-							</>
-						) : (
-							<p className={css.authHint}>
-								{seerrLabel} connection is managed through the Moonfin plugin.
-								Log in above if prompted.
-							</p>
-						)}
-					</div>
-				)}
-			</div>
+			<>
+				{renderInfoItem('pluginVersion', 'Plugin Version', info?.version || 'Unknown')}
+				{renderInfoItem('settingsSync', 'Settings Sync', info?.settingsSyncEnabled ? 'Available' : 'Not Available')}
+				{renderInfoItem('seerrStatus', seerrLabel, info?.jellyseerrEnabled ? 'Enabled by Admin' : 'Disabled by Admin')}
+				{isSeerr && renderInfoItem('seerrVariant', 'Detected Variant', `${seerrLabel} (Seerr v3+)`)}
+			</>
 		);
 	};
 
-	const renderAboutPanel = () => (
-		<div className={css.panel}>
-			<h1>About</h1>
-			<div className={css.settingsGroup}>
-				<h2>Application</h2>
-				<SpottableDiv className={css.infoItem} tabIndex={0}>
-					<span className={css.infoLabel}>App Version</span>
-					<span className={css.infoValue}>{process.env.REACT_APP_VERSION || '0.0.0'}</span>
-				</SpottableDiv>
-				<SpottableDiv className={css.infoItem} tabIndex={0}>
-					<span className={css.infoLabel}>Platform</span>
-					<span className={css.infoValue}>
-						{capabilities?.tizenVersionDisplay
-							? 'Tizen'
-							: capabilities?.webosVersionDisplay
-								? 'webOS'
-								: 'Unknown'}
-					</span>
-				</SpottableDiv>
-			</div>
-
-			<div className={css.settingsGroup}>
-				<h2>Server</h2>
-				<SpottableDiv className={css.infoItem} tabIndex={0}>
-					<span className={css.infoLabel}>Server URL</span>
-					<span className={css.infoValue}>{serverUrl || 'Not connected'}</span>
-				</SpottableDiv>
-				<SpottableDiv className={css.infoItem} tabIndex={0}>
-					<span className={css.infoLabel}>Server Version</span>
-					<span className={css.infoValue}>{serverVersion || 'Loading...'}</span>
-				</SpottableDiv>
-			</div>
-
-			<div className={css.settingsGroup}>
-				<h2>Debugging</h2>
-				{renderToggleItem('Server Logging', 'Send logs to Jellyfin server for troubleshooting', 'serverLogging')}
-			</div>
-
-			{capabilities && (
-				<div className={css.settingsGroup}>
-					<h2>Device</h2>
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>Model</span>
-						<span className={css.infoValue}>{capabilities.modelName || 'Unknown'}</span>
-					</SpottableDiv>
-					{(capabilities.tizenVersionDisplay || capabilities.webosVersionDisplay) && (
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>
-								{capabilities.tizenVersionDisplay ? 'Tizen Version' : 'webOS Version'}
-							</span>
-							<span className={css.infoValue}>
-								{capabilities.tizenVersionDisplay || capabilities.webosVersionDisplay}
-							</span>
-						</SpottableDiv>
-					)}
-					{capabilities.firmwareVersion && (
-						<SpottableDiv className={css.infoItem} tabIndex={0}>
-							<span className={css.infoLabel}>Firmware</span>
-							<span className={css.infoValue}>{capabilities.firmwareVersion}</span>
-						</SpottableDiv>
-					)}
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>Resolution</span>
-						<span className={css.infoValue}>
-							{capabilities.uhd8K ? '7680x4320 (8K)' :
-							 capabilities.uhd ? '3840x2160 (4K)' :
-							 '1920x1080 (HD)'}
-							{capabilities.oled && ' OLED'}
-						</span>
-					</SpottableDiv>
-				</div>
-			)}
-
-			{capabilities && (
-				<div className={css.settingsGroup}>
-					<h2>Capabilities</h2>
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>HDR</span>
-						<span className={css.infoValue}>
-							{[
-								capabilities.hdr10 && 'HDR10',
-								capabilities.hdr10Plus && 'HDR10+',
-								capabilities.hlg && 'HLG',
-								capabilities.dolbyVision && 'Dolby Vision'
-							].filter(Boolean).join(', ') || 'Not supported'}
-						</span>
-					</SpottableDiv>
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>Video Codecs</span>
-						<span className={css.infoValue}>
-							{[
-								'H.264',
-								capabilities.hevc && 'HEVC',
-								capabilities.vp9 && 'VP9',
-								capabilities.av1 && 'AV1'
-							].filter(Boolean).join(', ')}
-						</span>
-					</SpottableDiv>
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>Audio Codecs</span>
-						<span className={css.infoValue}>
-							{[
-								'AAC',
-								capabilities.ac3 && 'AC3',
-								capabilities.eac3 && 'E-AC3',
-								capabilities.dts && 'DTS',
-								capabilities.dolbyAtmos && 'Atmos'
-							].filter(Boolean).join(', ')}
-						</span>
-					</SpottableDiv>
-					<SpottableDiv className={css.infoItem} tabIndex={0}>
-						<span className={css.infoLabel}>Containers</span>
-						<span className={css.infoValue}>
-							{[
-								'MP4',
-								capabilities.mkv && 'MKV',
-								'TS',
-								capabilities.webm && 'WebM',
-								capabilities.asf && 'ASF'
-							].filter(Boolean).join(', ')}
-						</span>
-					</SpottableDiv>
-				</div>
-			)}
-		</div>
+	const renderPluginMDBList = () => (
+		<>
+			{renderToggleItem('mdblistEnabled', 'Enable Ratings', 'Show MDBList ratings on media details and featured bar')}
+			{settings.mdblistEnabled &&
+				renderToggleItem('showRatingLabels', 'Show Rating Labels', 'Display source names below rating scores')}
+		</>
 	);
 
-	const renderHomeRowsModal = () => {
-		return (
-			<Popup
-				open={showHomeRowsModal}
-				onClose={closeHomeRowsModal}
-				position="center"
-				scrimType="translucent"
-				noAutoDismiss
-			>
-				<div className={css.popupContent}>
-					<h2 className={css.popupTitle}>Configure Home Rows</h2>
-					<p className={css.popupDescription}>
-						Enable/disable and reorder the rows that appear on your home screen.
-					</p>
-					<div className={css.homeRowsList}>
-						{tempHomeRows.map((row, index) => (
-							<div key={row.id} className={css.homeRowItem}>
-								<Button
-									className={css.homeRowToggle}
-									onClick={handleHomeRowToggleClick}
-									data-row-id={row.id}
-									size="small"
-								>
-									<span className={css.checkbox}>{row.enabled ? '☑' : '☐'}</span>
-									<span className={css.homeRowName}>{row.name}</span>
-								</Button>
-								<div className={css.homeRowControls}>
-									<Button
-										className={css.moveButton}
-										onClick={handleHomeRowUpClick}
-										data-row-id={row.id}
-										disabled={index === 0}
-										size="small"
-										icon="arrowlargeup"
-									/>
-									<Button
-										className={css.moveButton}
-										onClick={handleHomeRowDownClick}
-										data-row-id={row.id}
-										disabled={index === tempHomeRows.length - 1}
-										size="small"
-										icon="arrowlargedown"
-									/>
-								</div>
+	const renderPluginTMDB = () => (
+		<>{renderToggleItem('tmdbEpisodeRatingsEnabled', 'Episode Ratings', 'Show TMDB ratings on individual episodes')}</>
+	);
+
+	const renderPluginSeerr = () => (
+		<>
+			{jellyseerr.isEnabled && jellyseerr.isAuthenticated && jellyseerr.isMoonfin ? (
+				<>
+					{renderInfoItem('seerrConnStatus', 'Status', 'Connected via Moonfin')}
+					{jellyseerr.serverUrl && renderInfoItem('seerrUrl', `${seerrLabel} URL`, jellyseerr.serverUrl)}
+					{jellyseerr.user && renderInfoItem('seerrUser', 'User', jellyseerr.user.displayName || 'Moonfin User')}
+					<div className={css.actionBarInline}>
+						<SpottableButton
+							className={`${css.actionButton} ${css.dangerButton}`}
+							onClick={handleJellyseerrDisconnect}
+							spotlightId='jellyseerr-disconnect'
+						>
+							Disconnect
+						</SpottableButton>
+					</div>
+				</>
+			) : (
+				<div className={css.authHint}>
+					{seerrLabel} connection is managed through the Moonfin plugin. Log in above if prompted.
+				</div>
+			)}
+		</>
+	);
+
+	const renderAboutApp = () => (
+		<>
+			{renderInfoItem('appVersion', 'App Version', process.env.REACT_APP_VERSION || '0.0.0')}
+			{renderInfoItem(
+				'platform',
+				'Platform',
+				capabilities?.tizenVersionDisplay ? 'Tizen' : capabilities?.webosVersionDisplay ? 'webOS' : 'Unknown'
+			)}
+		</>
+	);
+
+	const renderAboutServer = () => (
+		<>
+			{renderInfoItem('serverUrl', 'Server URL', serverUrl || 'Not connected')}
+			{renderInfoItem('serverVersion', 'Server Version', serverVersion || 'Loading...')}
+		</>
+	);
+
+	const renderAboutDebugging = () => (
+		<>{renderToggleItem('serverLogging', 'Server Logging', 'Send logs to Jellyfin server for troubleshooting')}</>
+	);
+
+	const renderAboutDevice = () => (
+		<>
+			{renderInfoItem('model', 'Model', capabilities?.modelName || 'Unknown')}
+			{(capabilities?.tizenVersionDisplay || capabilities?.webosVersionDisplay) &&
+				renderInfoItem(
+					'osVersion',
+					capabilities.tizenVersionDisplay ? 'Tizen Version' : 'webOS Version',
+					capabilities.tizenVersionDisplay || capabilities.webosVersionDisplay
+				)}
+			{capabilities?.firmwareVersion && renderInfoItem('firmware', 'Firmware', capabilities.firmwareVersion)}
+			{renderInfoItem(
+				'resolution',
+				'Resolution',
+				`${capabilities?.uhd8K ? '7680x4320 (8K)' : capabilities?.uhd ? '3840x2160 (4K)' : '1920x1080 (HD)'}${capabilities?.oled ? ' OLED' : ''}`
+			)}
+		</>
+	);
+
+	const renderAboutCapabilities = () => (
+		<>
+			{renderInfoItem(
+				'hdr',
+				'HDR',
+				[
+					capabilities?.hdr10 && 'HDR10',
+					capabilities?.hdr10Plus && 'HDR10+',
+					capabilities?.hlg && 'HLG',
+					capabilities?.dolbyVision && 'Dolby Vision'
+				]
+					.filter(Boolean)
+					.join(', ') || 'Not supported'
+			)}
+			{renderInfoItem(
+				'videoCodecs',
+				'Video Codecs',
+				['H.264', capabilities?.hevc && 'HEVC', capabilities?.vp9 && 'VP9', capabilities?.av1 && 'AV1']
+					.filter(Boolean)
+					.join(', ')
+			)}
+			{renderInfoItem(
+				'audioCodecs',
+				'Audio Codecs',
+				[
+					'AAC',
+					capabilities?.ac3 && 'AC3',
+					capabilities?.eac3 && 'E-AC3',
+					capabilities?.dts && 'DTS',
+					capabilities?.dolbyAtmos && 'Atmos'
+				]
+					.filter(Boolean)
+					.join(', ')
+			)}
+			{renderInfoItem(
+				'containers',
+				'Containers',
+				['MP4', capabilities?.mkv && 'MKV', 'TS', capabilities?.webm && 'WebM', capabilities?.asf && 'ASF']
+					.filter(Boolean)
+					.join(', ')
+			)}
+		</>
+	);
+
+	const getSubcategories = (catId) => {
+		const info = jellyseerr.pluginInfo;
+		const isConnected = settings.useMoonfinPlugin && info;
+		switch (catId) {
+			case 'general': {
+				const subs = [{ id: 'application', label: 'Application', description: 'Clock, auto login' }];
+				if (hasMultipleServers) {
+					subs.push({ id: 'multiServer', label: 'Multi-Server', description: 'Unified library settings' });
+				}
+				subs.push(
+					{ id: 'navbar', label: 'Navigation Bar', description: 'Style, buttons, and shortcuts' },
+					{ id: 'homeScreen', label: 'Home Screen', description: 'Rows and library visibility' }
+				);
+				return subs;
+			}
+			case 'playback':
+				return [
+					{ id: 'video', label: 'Video', description: 'Playback, bitrate, and seeking' },
+					{ id: 'nextUp', label: 'Next Up', description: 'Auto-play and next episode prompt' },
+					{ id: 'subtitles', label: 'Subtitles', description: 'Size, position, color, and background' }
+				];
+			case 'display':
+				return [
+					{ id: 'backdrop', label: 'Backdrop', description: 'Background art and blur' },
+					{ id: 'uiElements', label: 'UI Elements', description: 'Opacity, color, and avatar' },
+					{ id: 'featuredBar', label: 'Featured Media Bar', description: 'Featured content and trailers' },
+					{ id: 'themes', label: 'Themes & Effects', description: 'Seasonal effects and theme music' },
+					{ id: 'screensaver', label: 'Screensaver', description: 'Burn-in protection' }
+				];
+			case 'plugin': {
+				const subs = [{ id: 'moonfinPlugin', label: 'Moonfin Plugin', description: 'Plugin connection and login' }];
+				if (isConnected) {
+					subs.push(
+						{ id: 'pluginStatus', label: 'Plugin Status', description: 'Version and sync info' },
+						{ id: 'mdblistRatings', label: 'MDBList Ratings', description: 'Rating display settings' },
+						{ id: 'tmdb', label: 'TMDB', description: 'Episode rating settings' },
+						{ id: 'seerr', label: seerrLabel, description: `${seerrLabel} connection status` }
+					);
+				}
+				return subs;
+			}
+			case 'about': {
+				const subs = [
+					{ id: 'appInfo', label: 'Application', description: 'Version and platform' },
+					{ id: 'serverInfo', label: 'Server', description: 'Connection and version' },
+					{ id: 'debugging', label: 'Debugging', description: 'Logging options' }
+				];
+				if (capabilities) {
+					subs.push(
+						{ id: 'device', label: 'Device', description: 'Model and hardware info' },
+						{ id: 'capabilities', label: 'Capabilities', description: 'Supported formats and codecs' }
+					);
+				}
+				return subs;
+			}
+			default:
+				return [];
+		}
+	};
+
+	const getSubcategoryContent = (categoryId, subcategoryId) => {
+		const key = `${categoryId}.${subcategoryId}`;
+		switch (key) {
+			case 'general.application':
+				return renderGeneralApplication();
+			case 'general.multiServer':
+				return renderGeneralMultiServer();
+			case 'general.navbar':
+				return renderGeneralNavbar();
+			case 'general.homeScreen':
+				return renderGeneralHomeScreen();
+			case 'playback.video':
+				return renderPlaybackVideo();
+			case 'playback.nextUp':
+				return renderPlaybackNextUp();
+			case 'playback.subtitles':
+				return renderPlaybackSubtitles();
+			case 'display.backdrop':
+				return renderDisplayBackdrop();
+			case 'display.uiElements':
+				return renderDisplayUI();
+			case 'display.featuredBar':
+				return renderDisplayFeatured();
+			case 'display.themes':
+				return renderDisplayThemes();
+			case 'display.screensaver':
+				return renderDisplayScreensaver();
+			case 'plugin.moonfinPlugin':
+				return renderPluginMoonfin();
+			case 'plugin.pluginStatus':
+				return renderPluginStatus();
+			case 'plugin.mdblistRatings':
+				return renderPluginMDBList();
+			case 'plugin.tmdb':
+				return renderPluginTMDB();
+			case 'plugin.seerr':
+				return renderPluginSeerr();
+			case 'about.appInfo':
+				return renderAboutApp();
+			case 'about.serverInfo':
+				return renderAboutServer();
+			case 'about.debugging':
+				return renderAboutDebugging();
+			case 'about.device':
+				return renderAboutDevice();
+			case 'about.capabilities':
+				return renderAboutCapabilities();
+			default:
+				return null;
+		}
+	};
+
+	const renderCategoriesView = () => (
+		<ViewContainer className={css.viewContainer} spotlightId='categories-view'>
+			<div className={css.listContent} onFocus={handleListFocus}>
+				<div className={css.listInner}>
+					{renderSectionTitle('Settings')}
+					{categories.map((cat) => (
+						<SpottableDiv
+							key={cat.id}
+							className={css.listItem}
+							onClick={() => pushView({ view: 'category', id: cat.id, returnFocusTo: `cat-${cat.id}` })}
+							spotlightId={`cat-${cat.id}`}
+						>
+							<div className={css.listItemIcon}>
+								<cat.Icon />
 							</div>
+							<div className={css.listItemBody}>
+								<div className={css.listItemHeading}>{cat.label}</div>
+								<div className={css.listItemCaption}>{cat.description}</div>
+							</div>
+							<div className={css.listItemTrailing}>{renderChevron()}</div>
+						</SpottableDiv>
+					))}
+				</div>
+			</div>
+		</ViewContainer>
+	);
+
+	const renderCategoryView = () => {
+		const catId = currentView.id;
+		const cat = categories.find((c) => c.id === catId);
+		const subcats = getSubcategories(catId);
+		return (
+			<ViewContainer className={css.viewContainer} spotlightId='category-view'>
+				<div className={css.listContent} onFocus={handleListFocus}>
+					<div className={css.listInner}>
+						{renderSectionTitle(cat?.label || 'Settings')}
+						{subcats.map((sub) => (
+							<SpottableDiv
+								key={sub.id}
+								className={css.listItem}
+								onClick={() =>
+									pushView({
+										view: 'subcategory',
+										categoryId: catId,
+										subcategoryId: sub.id,
+										label: sub.label,
+										returnFocusTo: `subcat-${sub.id}`
+									})
+								}
+								spotlightId={`subcat-${sub.id}`}
+							>
+								<div className={css.listItemBody}>
+									<div className={css.listItemHeading}>{sub.label}</div>
+									{sub.description && <div className={css.listItemCaption}>{sub.description}</div>}
+								</div>
+								<div className={css.listItemTrailing}>{renderChevron()}</div>
+							</SpottableDiv>
 						))}
 					</div>
-					<div className={css.popupButtons}>
-						<Button
-							onClick={resetHomeRows}
-							size="small"
-						>
+				</div>
+			</ViewContainer>
+		);
+	};
+
+	const renderOptionsView = () => {
+		const { title, options, settingKey } = currentView;
+		const currentValue = settings[settingKey];
+		return (
+			<ViewContainer className={css.viewContainer} spotlightId='options-view'>
+				<div className={css.listContent} onFocus={handleListFocus}>
+					<div className={css.listInner}>
+						{renderSectionTitle(title)}
+						{options.map((opt, idx) => (
+							<SpottableDiv
+								key={String(opt.value)}
+								className={`${css.listItem} ${opt.value === currentValue ? css.listItemSelected : ''}`}
+								onClick={() => handleOptionSelect(settingKey, opt.value)}
+								spotlightId={`opt-${idx}`}
+							>
+								<div className={css.listItemBody}>
+									<div className={css.listItemHeading}>{opt.label}</div>
+								</div>
+								<div className={css.listItemTrailing}>{renderRadio(opt.value === currentValue)}</div>
+							</SpottableDiv>
+						))}
+					</div>
+				</div>
+			</ViewContainer>
+		);
+	};
+
+	const renderSubcategoryView = () => {
+		const { categoryId, subcategoryId, label } = currentView;
+		return (
+			<ViewContainer className={css.viewContainer} spotlightId='subcategory-view'>
+				<div className={css.listContent} onFocus={handleListFocus}>
+					<div className={css.listInner}>
+						{renderSectionTitle(label || 'Settings')}
+						{getSubcategoryContent(categoryId, subcategoryId)}
+					</div>
+				</div>
+			</ViewContainer>
+		);
+	};
+
+	const renderHomeRowsView = () => (
+		<ViewContainer className={css.viewContainer} spotlightId='homerows-view'>
+			<div className={css.listContent} onFocus={handleListFocus}>
+				<div className={css.listInner}>
+					{renderSectionTitle('Configure Home Rows')}
+					<div className={css.viewDescription}>
+						Enable/disable and reorder the rows that appear on your home screen.
+					</div>
+					{tempHomeRows.map((row, index) => (
+						<div key={row.id} className={css.homeRowItem}>
+							<SpottableDiv
+								className={css.listItem}
+								onClick={() => toggleHomeRow(row.id)}
+								spotlightId={`homerow-${row.id}`}
+							>
+								<div className={css.listItemBody}>
+									<div className={css.listItemHeading}>{row.name}</div>
+								</div>
+								<div className={css.listItemTrailing}>{renderToggle(row.enabled)}</div>
+							</SpottableDiv>
+							<div className={css.homeRowControls}>
+								<Button
+									onClick={() => moveHomeRowUp(row.id)}
+									disabled={index === 0}
+									size='small'
+									icon='arrowlargeup'
+									spotlightId={`homerow-up-${row.id}`}
+								/>
+								<Button
+									onClick={() => moveHomeRowDown(row.id)}
+									disabled={index === tempHomeRows.length - 1}
+									size='small'
+									icon='arrowlargedown'
+									spotlightId={`homerow-down-${row.id}`}
+								/>
+							</div>
+						</div>
+					))}
+					<div className={css.actionBar}>
+						<Button onClick={resetHomeRows} size='small' spotlightId='homerow-reset'>
 							Reset to Default
 						</Button>
-						<Button
-							onClick={closeHomeRowsModal}
-							size="small"
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={saveHomeRows}
-							size="small"
-							className={css.primaryButton}
-						>
+						<Button onClick={saveHomeRows} size='small' spotlightId='homerow-save'>
 							Save
 						</Button>
 					</div>
 				</div>
-			</Popup>
-		);
-	};
+			</div>
+		</ViewContainer>
+	);
 
 	const isUnifiedModal = settings.unifiedLibraryMode && hasMultipleServers;
 
-	const renderLibraryModal = () => (
-		<Popup
-			open={showLibraryModal}
-			onClose={closeLibraryModal}
-			position="center"
-			scrimType="translucent"
-			noAutoDismiss
-		>
-			<div className={css.popupContent}>
-				<h2 className={css.popupTitle}>Hide Libraries</h2>
-				<p className={css.popupDescription}>
-					Hidden libraries are removed from all Jellyfin clients. This is a server-level setting.
-				</p>
-				{libraryLoading ? (
-					<div className={css.libraryListLoading}>Loading libraries...</div>
-				) : (
-					<div className={css.homeRowsList}>
-						{allLibraries.map(lib => {
+	const renderLibrariesView = () => (
+		<ViewContainer className={css.viewContainer} spotlightId='libraries-view'>
+			<div className={css.listContent} onFocus={handleListFocus}>
+				<div className={css.listInner}>
+					{renderSectionTitle('Hide Libraries')}
+					<div className={css.viewDescription}>
+						Hidden libraries are removed from all Jellyfin clients. This is a server-level setting.
+					</div>
+					{libraryLoading ? (
+						<div className={css.loadingMessage}>Loading libraries...</div>
+					) : (
+						allLibraries.map((lib) => {
 							const isHidden = hiddenLibraries.includes(lib.Id);
 							return (
-								<div key={`${lib._serverUrl || 'local'}-${lib.Id}`} className={css.homeRowItem}>
-									<Button
-										className={css.homeRowToggle}
-										onClick={handleLibraryToggleClick}
-										data-library-id={lib.Id}
-										size="small"
-									>
-										<span className={css.checkbox}>{isHidden ? '☐' : '☑'}</span>
-										<span className={css.homeRowName}>
-											{lib.Name}{isUnifiedModal && lib._serverName ? ` (${lib._serverName})` : ''}
-										</span>
-									</Button>
-								</div>
+								<SpottableDiv
+									key={`${lib._serverUrl || 'local'}-${lib.Id}`}
+									className={css.listItem}
+									onClick={() => toggleLibraryVisibility(lib.Id)}
+									spotlightId={`lib-${lib.Id}`}
+								>
+									<div className={css.listItemBody}>
+										<div className={css.listItemHeading}>
+											{lib.Name}
+											{isUnifiedModal && lib._serverName ? ` (${lib._serverName})` : ''}
+										</div>
+										<div className={css.listItemCaption}>{isHidden ? 'Hidden' : 'Visible'}</div>
+									</div>
+									<div className={css.listItemTrailing}>{renderToggle(!isHidden)}</div>
+								</SpottableDiv>
 							);
-						})}
-					</div>
-				)}
-				<div className={css.popupButtons}>
-					<Button
-						onClick={closeLibraryModal}
-						size="small"
-					>
-						Cancel
-					</Button>
-					<Button
-						onClick={saveLibraryVisibility}
-						size="small"
-						className={css.primaryButton}
-						disabled={librarySaving}
-					>
-						{librarySaving ? 'Saving...' : 'Save'}
-					</Button>
+						})
+					)}
+					{!libraryLoading && (
+						<div className={css.actionBar}>
+							<Button onClick={popView} size='small' spotlightId='lib-cancel'>
+								Cancel
+							</Button>
+							<Button onClick={saveLibraryVisibility} size='small' disabled={librarySaving} spotlightId='lib-save'>
+								{librarySaving ? 'Saving...' : 'Save'}
+							</Button>
+						</div>
+					)}
 				</div>
 			</div>
-		</Popup>
+		</ViewContainer>
 	);
-
-	const renderOptionDialog = () => {
-		if (!optionDialog) return null;
-		const currentValue = settings[optionDialog.settingKey];
-		return (
-			<Popup
-				open
-				onClose={closeOptionDialog}
-				position="center"
-				scrimType="translucent"
-				noAutoDismiss
-			>
-				<div className={css.popupContent}>
-					<h2 className={css.popupTitle}>{optionDialog.title}</h2>
-					<OptionDialogContainer className={css.optionList}>
-						{optionDialog.options.map((opt, idx) => (
-							<SpottableDiv
-								key={opt.value}
-								className={`${css.optionItem} ${opt.value === currentValue ? css.optionItemSelected : ''}`}
-								onClick={handleOptionSelect}
-								data-value={opt.value}
-								spotlightId={`option-${idx}`}
-								spotlightDisabled={false}
-								{...(opt.value === currentValue ? {'data-spotlight-default-element': ''} : {})}
-							>
-								<span className={css.optionLabel}>{opt.label}</span>
-								{opt.value === currentValue && <span className={css.optionCheck}>✓</span>}
-							</SpottableDiv>
-						))}
-					</OptionDialogContainer>
-				</div>
-			</Popup>
-		);
-	};
-
-	const renderPanel = () => {
-		switch (activeCategory) {
-			case 'general': return renderGeneralPanel();
-			case 'playback': return renderPlaybackPanel();
-			case 'display': return renderDisplayPanel();
-			case 'plugin': return renderPluginPanel();
-			case 'about': return renderAboutPanel();
-			default: return renderGeneralPanel();
-		}
-	};
 
 	return (
 		<div className={css.page}>
-			<SidebarContainer
-				className={css.sidebar}
-				onKeyDown={handleSidebarKeyDown}
-				spotlightId="settings-sidebar"
-			>
-				{categories.map(cat => (
-					<SpottableDiv
-						key={cat.id}
-						className={`${css.category} ${activeCategory === cat.id ? css.active : ''}`}
-						onClick={handleCategorySelect}
-						onFocus={handleCategorySelect}
-						data-category={cat.id}
-						spotlightId={`sidebar-${cat.id}`}
-					>
-						<span className={css.categoryIcon}><cat.Icon /></span>
-						<span className={css.categoryLabel}>{cat.label}</span>
-					</SpottableDiv>
-				))}
-			</SidebarContainer>
-
-			<ContentContainer
-				className={css.content}
-				onKeyDown={handleContentKeyDown}
-				spotlightId="settings-content"
-			>
-				{renderPanel()}
-			</ContentContainer>
-
-			{renderHomeRowsModal()}
-			{renderLibraryModal()}
-			{renderOptionDialog()}
+			{currentView.view === 'categories' && renderCategoriesView()}
+			{currentView.view === 'category' && renderCategoryView()}
+			{currentView.view === 'subcategory' && renderSubcategoryView()}
+			{currentView.view === 'options' && renderOptionsView()}
+			{currentView.view === 'homeRows' && renderHomeRowsView()}
+			{currentView.view === 'libraries' && renderLibrariesView()}
 		</div>
 	);
 };

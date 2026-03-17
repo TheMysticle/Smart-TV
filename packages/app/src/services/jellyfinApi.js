@@ -268,6 +268,9 @@ export const api = {
 	getSpecialFeatures: (itemId) =>
 		request(`/Users/${currentUser}/Items/${itemId}/SpecialFeatures`),
 
+	getThemeSongs: (itemId, inheritFromParent = true) =>
+		request(`/Items/${itemId}/ThemeSongs?UserId=${currentUser}&InheritFromParent=${inheritFromParent}`),
+
 	getLiveTvChannels: (startIndex = 0, limit = 50) =>
 		request(`/LiveTv/Channels?UserId=${currentUser}&EnableFavoriteSorting=true&StartIndex=${startIndex}&Limit=${limit}`),
 
@@ -523,6 +526,9 @@ export const createApiForServer = (serverUrl, token, userId) => {
 			serverRequest(`/Playlists/${playlistId}/Items/${itemId}/Move/${newIndex}`, {
 				method: 'POST'
 			}),
+
+		getThemeSongs: (itemId, inheritFromParent = true) =>
+			serverRequest(`/Items/${itemId}/ThemeSongs?UserId=${userId}&InheritFromParent=${inheritFromParent}`),
 
 		// Return server info for playback routing
 		getServerInfo: () => ({

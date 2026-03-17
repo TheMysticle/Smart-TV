@@ -883,8 +883,13 @@
 .nextProgressFill {
 	height: 100%;
 	background: var(--accent-color, #00a4dc);
-	transition: width 1s linear;
 	border-radius: 0 0 0 8px;
+	animation: fillProgress var(--countdown-duration, 7s) linear forwards;
+}
+
+@keyframes fillProgress {
+	from { width: 0%; }
+	to { width: 100%; }
 }
 
 /* Loading Indicator */
@@ -1141,4 +1146,48 @@
 	width: 100%;
 	--slider-active-bg-color: var(--accent-color, #00a4dc);
 	--slider-knob-bg-color: #fff;
+}
+
+.pauseDescriptionOverlay {
+	position: fixed;
+	bottom: 120px;
+	left: 60px;
+	right: 400px;
+	z-index: 150;
+	animation: fadeIn 0.3s ease;
+}
+
+.pauseDescriptionText {
+	font-size: 22px;
+	line-height: 1.5;
+	color: rgba(255, 255, 255, 0.85);
+	background: rgba(0, 0, 0, 0.6);
+	padding: 20px 24px;
+	border-radius: 8px;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	max-height: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 6;
+	-webkit-box-orient: vertical;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.nextEpisodeMinimal {
+	background: rgba(20, 20, 20, 0.95);
+	border-radius: 8px;
+	padding: 20px 24px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.nextCountdownText {
+	font-size: 18px;
+	color: rgba(255, 255, 255, 0.7);
+	margin: 8px 0;
 }

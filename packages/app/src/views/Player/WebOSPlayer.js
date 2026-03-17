@@ -1213,20 +1213,25 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const handlePlayPause = useCallback(() => {
 		if (videoRef.current) {
 			if (isPaused) {
+				const rewind = settings.unpauseRewind || 0;
+				if (rewind > 0) {
+					const newTime = Math.max(0, videoRef.current.currentTime - rewind);
+					videoRef.current.currentTime = newTime;
+				}
 				videoRef.current.play();
 			} else {
 				videoRef.current.pause();
 			}
 		}
-	}, [isPaused]);
+	}, [isPaused, settings.unpauseRewind]);
 
 	const handleRewind = useCallback(() => {
 		if (videoRef.current) seekByOffset(-settings.seekStep);
 	}, [settings.seekStep, seekByOffset]);
 
 	const handleForward = useCallback(() => {
-		if (videoRef.current) seekByOffset(settings.seekStep);
-	}, [settings.seekStep, seekByOffset]);
+		if (videoRef.current) seekByOffset(settings.skipForwardLength || settings.seekStep);
+	}, [settings.skipForwardLength, settings.seekStep, seekByOffset]);
 
 	const openModal = useCallback((modal) => {
 		setActiveModal(modal);
@@ -1699,6 +1704,12 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				</div>
 			)}
 
+			{!isLoading && !error && isPaused && settings.showDescriptionOnPause && item?.Overview && !isAudioMode && !activeModal && !controlsVisible && (
+				<div className={css.pauseDescriptionOverlay}>
+					<div className={css.pauseDescriptionText}>{item.Overview}</div>
+				</div>
+			)}
+
 			{/* Playback Speed Indicator */}
 			{!isLoading && !error && playbackRate !== 1 && (
 				<div className={css.playbackIndicators}>
@@ -1709,6 +1720,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			{/* Next Episode Overlay */}
 			{!isLoading && !error && (showSkipCredits || showNextEpisode) && nextEpisode && !isAudioMode && !activeModal && !controlsVisible && (
 				<NextEpisodeContainer className={css.nextEpisodeOverlay} spotlightRestrict="self-only">
+					{settings.nextUpBehavior !== 'minimal' ? (
 					<div className={css.nextEpisodeCard}>
 						<div className={css.nextThumbnail}>
 							<img
@@ -1744,11 +1756,28 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 							</div>
 						</div>
 					</div>
-					{nextEpisodeCountdown !== null && (
+					) : (
+					<div className={css.nextEpisodeMinimal}>
+						<div className={css.nextLabel}>UP NEXT</div>
+						<div className={css.nextTitle}>{nextEpisode.Name}</div>
+						{nextEpisodeCountdown !== null && (
+							<div className={css.nextCountdownText}>Starting in {nextEpisodeCountdown}s</div>
+						)}
+						<div className={css.nextActions}>
+							<SpottableButton className={css.nextPlayBtn} onClick={handlePlayNextEpisode} data-spot-default="true">
+								&#9654; Play Now
+							</SpottableButton>
+							<SpottableButton className={css.nextCancelBtn} onClick={cancelNextEpisodeCountdown}>
+								Hide
+							</SpottableButton>
+						</div>
+					</div>
+					)}
+					{nextEpisodeCountdown !== null && settings.nextUpBehavior !== 'minimal' && (
 						<div className={css.nextProgressBar}>
 							<div
 								className={css.nextProgressFill}
-								style={{width: `${((15 - nextEpisodeCountdown) / 15) * 100}%`}}
+								style={{'--countdown-duration': `${settings.nextUpTimeout ?? 7}s`}}
 							/>
 						</div>
 					)}

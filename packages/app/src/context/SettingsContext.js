@@ -43,7 +43,7 @@ const defaultSettings = {
 	backdropBlurHome: 20,
 	backdropBlurDetail: 20,
 	uiOpacity: 85,
-	uiColor: 'dark',
+	uiColor: 'gray',
 	serverLogging: false,
 	featuredContentType: 'both',
 	featuredItemCount: 10,
@@ -60,7 +60,27 @@ const defaultSettings = {
 	screensaverTimeout: 90,
 	screensaverDimmingLevel: 50,
 	screensaverShowClock: true,
-	screensaverMode: 'library'
+	screensaverMode: 'library',
+	watchedIndicatorBehavior: 'always',
+	cardFocusZoom: false,
+	useSeriesThumbnails: false,
+	homeRowsPosterSize: 'default',
+	homeRowsImageType: 'poster',
+	focusColor: '#00a4dc',
+	nextUpBehavior: 'extended',
+	nextUpTimeout: 7,
+	skipForwardLength: 30,
+	unpauseRewind: 0,
+	showDescriptionOnPause: false,
+	introAction: 'ask',
+	outroAction: 'ask',
+	seasonalTheme: 'none',
+	themeMusicEnabled: false,
+	themeMusicVolume: 30,
+	themeMusicOnHomeRows: false,
+	showRatingLabels: true,
+	screensaverAgeFilter: false,
+	screensaverMaxRating: 13
 };
 
 export {DEFAULT_HOME_ROWS};
@@ -71,6 +91,9 @@ const SERVER_TO_LOCAL = {
 	mediaBarItemCount: 'featuredItemCount',
 	mediaBarTrailerPreview: 'featuredTrailerPreview',
 	enableMultiServerLibraries: 'unifiedLibraryMode',
+	seasonalSurprise: 'seasonalTheme',
+	mediaBarOverlayColor: 'uiColor',
+	mediaBarOpacity: 'uiOpacity',
 };
 const LOCAL_TO_SERVER = Object.fromEntries(
 	Object.entries(SERVER_TO_LOCAL).map(([s, l]) => [l, s])
@@ -81,7 +104,10 @@ const SYNCABLE_KEYS = [
 	'showFavoritesButton', 'showLibrariesInToolbar', 'mergeContinueWatchingNextUp',
 	'mdblistEnabled', 'tmdbEpisodeRatingsEnabled', 'navbarPosition',
 	'showFeaturedBar', 'featuredContentType', 'featuredItemCount',
-	'featuredTrailerPreview', 'unifiedLibraryMode',
+	'featuredTrailerPreview', 'unifiedLibraryMode', 'seasonalTheme',
+	'uiColor', 'uiOpacity', 'focusColor', 'showRatingLabels',
+	'themeMusicEnabled', 'themeMusicVolume', 'themeMusicOnHomeRows',
+	'homeRowsImageType',
 ];
 
 const profileToLocal = (serverProfile) => {
@@ -185,7 +211,20 @@ export function SettingsProvider({children}) {
 	useEffect(() => {
 		getFromStorage('settings').then((stored) => {
 			if (stored) {
-				setSettings({...defaultSettings, ...stored});
+				let migrated = false;
+				if ('skipIntro' in stored) {
+					stored.introAction = stored.skipIntro === true ? 'auto' : 'ask';
+					delete stored.skipIntro;
+					migrated = true;
+				}
+				if ('skipCredits' in stored) {
+					stored.outroAction = stored.skipCredits === true ? 'auto' : 'ask';
+					delete stored.skipCredits;
+					migrated = true;
+				}
+				const merged = {...defaultSettings, ...stored};
+				setSettings(merged);
+				if (migrated) saveToStorage('settings', merged);
 			}
 			setLoaded(true);
 		});

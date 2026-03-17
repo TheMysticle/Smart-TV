@@ -147,7 +147,12 @@ const Sidebar = ({
 			const focusTargets = [
 				'featured-banner',
 				'row-0',
-				'settings-sidebar',
+				'categories-view',
+				'category-view',
+				'subcategory-view',
+				'options-view',
+				'homerows-view',
+				'libraries-view',
 				'favorites-row-0',
 				'genres-grid',
 				'genre-browse-grid',

@@ -4,3 +4,4 @@ export {useLibrary} from './useLibrary';
 export {useItem, useSeasons, useEpisodes, useSimilar} from './useItem';
 export {useSearch} from './useSearch';
 export {useVersionCheck} from './useVersionCheck';
+export {useThemeMusic} from './useThemeMusic';

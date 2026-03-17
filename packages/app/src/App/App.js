@@ -19,9 +19,11 @@ import AccountModal from '../components/AccountModal';
 import ExitDialog from '../components/ExitDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Screensaver from '../components/Screensaver';
+import SeasonalTheme from '../components/SeasonalTheme';
 import PhotoViewer from '../components/PhotoViewer';
 import ComicViewer from '../components/ComicViewer';
 import useInactivityTimer from '../hooks/useInactivityTimer';
+import {useThemeMusic} from '../hooks/useThemeMusic';
 import Login from '../views/Login';
 import Browse from '../views/Browse';
 
@@ -78,6 +80,7 @@ const PANELS = {
 const AppContent = (props) => {
 	const {isAuthenticated, isLoading, logout, serverUrl, serverName, api, user, hasMultipleServers, accessToken} = useAuth();
 	const {settings} = useSettings();
+	const themeMusic = useThemeMusic();
 	const unifiedMode = settings.unifiedLibraryMode && hasMultipleServers;
 	const [panelIndex, setPanelIndex] = useState(PANELS.LOGIN);
 	const [selectedItem, setSelectedItem] = useState(null);
@@ -131,6 +134,10 @@ const AppContent = (props) => {
 		fetchLibraries();
 	}, [fetchLibraries]);
 
+	useEffect(() => {
+		document.documentElement.style.setProperty('--accent-color', settings.focusColor || '#00a4dc');
+	}, [settings.focusColor]);
+
 	const {updateInfo, formattedNotes, dismiss: dismissUpdate} = useVersionCheck(isAuthenticated ? 3000 : null);
 
 	const screensaverActive = isAuthenticated &&
@@ -141,6 +148,19 @@ const AppContent = (props) => {
 		settings.screensaverTimeout || 90,
 		screensaverActive
 	);
+
+	const THEME_MUSIC_TYPES = ['Movie', 'Series', 'Season', 'Episode'];
+
+	useEffect(() => {
+		if (panelIndex === PANELS.DETAILS && selectedItem && THEME_MUSIC_TYPES.includes(selectedItem.Type)) {
+			themeMusic.playThemeMusic(selectedItem.SeriesId || selectedItem.Id);
+		} else if (panelIndex === PANELS.PLAYER) {
+			themeMusic.stopThemeMusicImmediate();
+		} else if (panelIndex !== PANELS.DETAILS) {
+			themeMusic.cancelDelayed();
+			themeMusic.stopThemeMusic();
+		}
+	}, [panelIndex, selectedItem?.Id]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const performAppCleanup = useCallback(() => {
 		console.log('[App] Performing app cleanup...');
@@ -698,6 +718,9 @@ const AppContent = (props) => {
 							onSelectItem={handleSelectItem}
 							onSelectLibrary={handleSelectLibrary}
 							isVisible={panelIndex === PANELS.BROWSE}
+							onFocusItemThemeMusic={themeMusic.playThemeMusicDelayed}
+							onBlurItemThemeMusic={themeMusic.cancelDelayed}
+							onLeaveThemeMusic={themeMusic.stopThemeMusic}
 						/>
 					</Panel>
 					<Panel>
@@ -899,9 +922,11 @@ const AppContent = (props) => {
 				dimmingLevel={settings.screensaverDimmingLevel}
 				showClock={settings.screensaverShowClock}
 				clockDisplay={settings.clockDisplay}
+				maxRating={settings.screensaverAgeFilter ? settings.screensaverMaxRating : null}
 				onDismiss={dismissScreensaver}
 				serverUrl={serverUrl}
 			/>
+			<SeasonalTheme theme={settings.seasonalTheme} />
 		</div>
 	);
 };
