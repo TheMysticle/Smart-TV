@@ -1,5 +1,5 @@
-<h1 align="center">Moonfin</h1>
-<h3 align="center">Enhanced Jellyfin client for Smart TVs</h3>
+<h1 align="center">Moonfin for Smart-TVs</h1>
+<h3 align="center">Enhanced Jellyfin client for webOS and Tizen TVs</h3>
 
 ---
 
@@ -9,8 +9,11 @@
 
 [![License](https://img.shields.io/github/license/Moonfin-Client/Smart-TV.svg)](https://github.com/Moonfin-Client/Smart-TV)
 [![Release](https://img.shields.io/github/release/Moonfin-Client/Smart-TV.svg)](https://github.com/Moonfin-Client/Smart-TV/releases)
+[![github](https://img.shields.io/github/downloads/Moonfin-Client/Smart-TV/total?logo=github&label=Downloads)](https://github.com/Moonfin-Client/Smart-TV/releases)
 
 <a href="https://www.buymeacoffee.com/moonfin" target="_blank"><img src="https://github.com/user-attachments/assets/fe26eaec-147f-496f-8e95-4ebe19f57131" alt="Buy Me A Coffee" ></a>
+
+> **[← Back to main Moonfin project](https://github.com/Moonfin-Client)**
 
 Moonfin is an enhanced Jellyfin client built with the **Enact/Sandstone framework**, optimized for Samsung Smart TVs (Tizen) and LG Smart TVs (webOS). A single shared codebase powers both platforms with native video pipelines tuned for each.
 
@@ -68,16 +71,34 @@ Moonfin is the first smart TV client with native Jellyseerr support.
 - Taglines displayed above the description where available
 - Cast photos appear as circles for a cleaner look
 - Fits more useful information on screen without feeling cramped
+- **Playlist Management** — Add any item to an existing playlist or create a new one directly from the details screen; reorder items with the left/right keys and remove them with Delete
 
 ### UI Polish
 - **Built with Enact/Sandstone** — Modern React-based framework optimized for TV experiences
 - **Accent Color Customization** — Personalize the UI with your preferred accent color
 - **Backdrop Blur Settings** — Customizable blur effects for home and details pages
+- **UI Scale** — Adjust the interface font size to suit your TV size and viewing distance
+- **Featured Banner** — A rotating hero banner on the browse screen highlights featured content with auto-advance and smooth transitions
 - Item details show up right in the row — no need to open every title to see what it is
 - Buttons look better when not focused (transparent instead of distracting)
 - Better contrast makes text easier to read
 - Transitions and animations feel responsive
 - Consistent icons and visual elements throughout
+
+---
+
+## Screenshots
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-55-13" src="https://github.com/user-attachments/assets/660712d2-1893-4c71-afff-5ddc9aa674e0" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-54-44" src="https://github.com/user-attachments/assets/96438891-3fbd-4e42-80da-4f60b7025165" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-55-35" src="https://github.com/user-attachments/assets/862923bd-9669-4642-a291-111259ec17a6" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-56-07" src="https://github.com/user-attachments/assets/11f74fad-fd72-43c4-9c6d-7f23c9672751" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-56-26" src="https://github.com/user-attachments/assets/c8dc62ba-354b-4ad9-9bf3-5b603d621352" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 21-56-36" src="https://github.com/user-attachments/assets/27eef61b-3295-4949-a34f-58b6166e6e94" />
+<img width="1950" height="1060" alt="Screenshot from 2026-03-17 22-12-48" src="https://github.com/user-attachments/assets/3726383f-4f86-4943-9227-d0b566e91121" />
+
+---
+
+**Disclaimer:** Screenshots shown in this documentation feature media content, artwork, and actor likenesses for demonstration purposes only. None of the media, studios, actors, or other content depicted are affiliated with, sponsored by, or endorsing the Moonfin client or the Jellyfin project. All rights to the portrayed content belong to their respective copyright holders. These screenshots are used solely to demonstrate the functionality and interface of the application.
 
 ---
 
@@ -247,6 +268,6 @@ This project is licensed under the MPL 2.0 license. Some parts incorporate conte
 
 ---
 <p align="center">
-   <strong>Moonfin for Smart TVs</strong> is an independent fork and is not affiliated with the Jellyfin project.<br>
+   <strong>Moonfin for Smart TVs</strong> is an independent client and is not affiliated with the Jellyfin project.<br>
    <a href="https://github.com/Moonfin-Client">← Back to main Moonfin project</a>
 </p>
