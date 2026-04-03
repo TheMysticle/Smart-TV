@@ -184,6 +184,11 @@ const PlayerControls = ({
 	handleSelectChapter,
 	handleOpenSubtitleOffset,
 	handleOpenSubtitleSettings,
+	handleOpenRemoteSubtitleSearch,
+	handleSelectRemoteSubtitle,
+	canDownloadRemoteSubtitles,
+	isSearchingRemoteSubtitles,
+	remoteSubtitleResults,
 	handleSubtitleOffsetChange,
 	closeModal,
 	stopPropagation,
@@ -344,8 +349,46 @@ const PlayerControls = ({
 						<p className={css.modalFooter}>
 							<SpottableButton spotlightId="btn-subtitle-offset" className={css.actionBtn} onClick={handleOpenSubtitleOffset}>Offset</SpottableButton>
 							<SpottableButton spotlightId="btn-subtitle-appearance" className={css.actionBtn} onClick={handleOpenSubtitleSettings} style={{marginLeft: 15}}>Appearance</SpottableButton>
+							{canDownloadRemoteSubtitles && (
+								<SpottableButton spotlightId="btn-subtitle-download" className={css.actionBtn} onClick={handleOpenRemoteSubtitleSearch} style={{marginLeft: 15}}>
+									Download
+								</SpottableButton>
+							)}
 						</p>
 						<p className={css.modalFooter} style={{marginTop: 5, fontSize: 14, opacity: 0.5}}>Press BACK to close</p>
+					</ModalContainer>
+				</div>
+			)}
+
+			{activeModal === 'subtitleDownload' && (
+				<div className={css.trackModal} onClick={closeModal}>
+					<ModalContainer className={css.modalContent} onClick={stopPropagation} data-modal="subtitleDownload" spotlightId="subtitleDownload-modal">
+						<h2 className={css.modalTitle}>Download Subtitles</h2>
+						<div className={css.trackList}>
+							{isSearchingRemoteSubtitles && (
+								<SpottableDiv className={css.trackItem}>
+									<span className={css.trackName}>Searching...</span>
+								</SpottableDiv>
+							)}
+							{!isSearchingRemoteSubtitles && remoteSubtitleResults.length === 0 && (
+								<SpottableDiv className={css.trackItem}>
+									<span className={css.trackName}>No remote subtitles found</span>
+								</SpottableDiv>
+							)}
+							{!isSearchingRemoteSubtitles && remoteSubtitleResults.map((subtitle, idx) => (
+								<SpottableButton
+									key={subtitle.id || idx}
+									className={css.trackItem}
+									data-index={idx}
+									onClick={handleSelectRemoteSubtitle}
+									style={{flexDirection: 'column', alignItems: 'flex-start'}}
+								>
+									<span className={css.trackName}>{subtitle.name || 'Subtitle'}</span>
+									{subtitle.info && <span className={css.trackInfo} style={{marginTop: 4}}>{subtitle.info}</span>}
+								</SpottableButton>
+							))}
+						</div>
+						<p className={css.modalFooter}>Press BACK to close</p>
 					</ModalContainer>
 				</div>
 			)}

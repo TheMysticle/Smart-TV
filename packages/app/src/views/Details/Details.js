@@ -14,6 +14,7 @@ import {formatDuration, getImageUrl, getBackdropId, getLogoUrl} from '../../util
 import {KEYS, isBackKey} from '../../utils/keys';
 import {fetchVideoStreamUrl} from '../../services/youtubeTrailer';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
+import {toSubtitleLanguage, mapRemoteSubtitleOptions} from '../Player/remoteSubtitleUtils';
 
 import css from './Details.module.less';
 
@@ -154,6 +155,8 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, bac
 	const [selectedSubtitleIndex, setSelectedSubtitleIndex] = useState(-1);
 	const [showMediaInfo, setShowMediaInfo] = useState(false);
 	const [activeModal, setActiveModal] = useState(null);
+	const [remoteSubtitleResults, setRemoteSubtitleResults] = useState([]);
+	const [isSearchingRemoteSubtitles, setIsSearchingRemoteSubtitles] = useState(false);
 	const [trailerOverlay, setTrailerOverlay] = useState(null);
 	const [trailerStreamUrl, setTrailerStreamUrl] = useState(null);
 	const [showPlaylistModal, setShowPlaylistModal] = useState(false);
@@ -530,6 +533,49 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, bac
 		setSelectedSubtitleIndex(index);
 		closeModal();
 	}, [closeModal]);
+
+	const handleOpenRemoteSubtitleSearch = useCallback(async () => {
+		if (!item?.Id) return;
+		setRemoteSubtitleResults([]);
+		setIsSearchingRemoteSubtitles(true);
+		openModal('subtitleDownload');
+		try {
+			const ms = item.MediaSources?.[selectedVersionIndex] || item.MediaSources?.[0];
+			const subs = ms?.MediaStreams?.filter(s => s.Type === 'Subtitle') || [];
+			const audios = ms?.MediaStreams?.filter(s => s.Type === 'Audio') || [];
+			const currentSub = selectedSubtitleIndex >= 0 ? subs[selectedSubtitleIndex] : null;
+			const currentAudio = audios[selectedAudioIndex];
+			const language = toSubtitleLanguage(
+				currentSub?.Language,
+				currentAudio?.Language,
+				subs[0]?.Language
+			);
+			const results = await effectiveApi.searchRemoteSubtitles(item.Id, language);
+			setRemoteSubtitleResults(mapRemoteSubtitleOptions(Array.isArray(results) ? results : results?.SearchResults || []));
+		} catch {
+			setRemoteSubtitleResults([]);
+		} finally {
+			setIsSearchingRemoteSubtitles(false);
+		}
+	}, [item, selectedVersionIndex, selectedSubtitleIndex, selectedAudioIndex, effectiveApi, openModal]);
+
+	const handleSelectRemoteSubtitle = useCallback(async (e) => {
+		const index = parseInt(e.currentTarget.dataset.index, 10);
+		if (isNaN(index) || !remoteSubtitleResults[index] || !item?.Id) return;
+		try {
+			await effectiveApi.downloadRemoteSubtitle(item.Id, remoteSubtitleResults[index].id);
+			const refreshed = await effectiveApi.getItem(item.Id);
+			setItem(tagWithServerInfo(refreshed));
+			const ms = refreshed.MediaSources?.[selectedVersionIndex] || refreshed.MediaSources?.[0];
+			const newSubs = ms?.MediaStreams?.filter(s => s.Type === 'Subtitle') || [];
+			const oldSubs = (item.MediaSources?.[selectedVersionIndex] || item.MediaSources?.[0])?.MediaStreams?.filter(s => s.Type === 'Subtitle') || [];
+			if (newSubs.length > oldSubs.length) {
+				const newIdx = newSubs.length - 1;
+				setSelectedSubtitleIndex(newIdx);
+			}
+		} catch { /* ignore */ }
+		closeModal();
+	}, [remoteSubtitleResults, item, effectiveApi, selectedVersionIndex, closeModal, tagWithServerInfo]);
 
 	const handleSelectVersion = useCallback((e) => {
 		const index = parseInt(e.currentTarget.dataset.index, 10);
@@ -1102,7 +1148,7 @@ const handleSectionKeyDown = useCallback((ev) => {
 					)}
 				</SpottableDiv>
 			)}
-			{hasSubtitles && (
+			{supportsMediaSourceSelection && (
 				<SpottableDiv className={css.btnWrapper} onClick={handleOpenSubtitleModal}>
 					<div className={css.btnAction}>
 						<svg className={css.btnIcon} viewBox="0 -960 960 960" fill="currentColor">
@@ -2084,6 +2130,43 @@ const handleSectionKeyDown = useCallback((ev) => {
 								>
 									<span className={css.trackName}>{stream.DisplayTitle || stream.Language || `Track ${i + 1}`}</span>
 									{stream.IsForced && <span className={css.trackInfo}>Forced</span>}
+								</SpottableButton>
+							))}
+						</div>
+						<p className={css.trackModalFooter}>
+							<SpottableButton spotlightId="btn-subtitle-download" className={css.actionBtn} onClick={handleOpenRemoteSubtitleSearch}>
+								Download
+							</SpottableButton>
+						</p>
+						<p className={css.trackModalFooter} style={{marginTop: 5, fontSize: 14, opacity: 0.5}}>Press BACK to close</p>
+					</ModalContainer>
+				</div>
+			)}
+			{activeModal === 'subtitleDownload' && (
+				<div className={css.trackModal} onClick={closeModal}>
+					<ModalContainer className={css.trackModalPanel} onClick={handleStopPropagation} data-modal="subtitleDownload" spotlightId="subtitleDownload-modal">
+						<h2 className={css.trackModalTitle}>Download Subtitles</h2>
+						<div className={css.trackList}>
+							{isSearchingRemoteSubtitles && (
+								<SpottableDiv className={css.trackItem}>
+									<span className={css.trackName}>Searching...</span>
+								</SpottableDiv>
+							)}
+							{!isSearchingRemoteSubtitles && remoteSubtitleResults.length === 0 && (
+								<SpottableDiv className={css.trackItem}>
+									<span className={css.trackName}>No remote subtitles found</span>
+								</SpottableDiv>
+							)}
+							{!isSearchingRemoteSubtitles && remoteSubtitleResults.map((subtitle, idx) => (
+								<SpottableButton
+									key={subtitle.id || idx}
+									className={css.trackItem}
+									data-index={idx}
+									onClick={handleSelectRemoteSubtitle}
+									style={{flexDirection: 'column', alignItems: 'flex-start'}}
+								>
+									<span className={css.trackName}>{subtitle.name || 'Subtitle'}</span>
+									{subtitle.info && <span className={css.trackInfo} style={{marginTop: 4}}>{subtitle.info}</span>}
 								</SpottableButton>
 							))}
 						</div>

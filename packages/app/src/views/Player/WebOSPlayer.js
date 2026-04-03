@@ -4,7 +4,7 @@ import Button from '@enact/sandstone/Button';
 import Hls from 'hls.js';
 import * as playback from '../../services/playback';
 import {getImageUrl} from '../../utils/helpers';
-import {getServerUrl} from '../../services/jellyfinApi';
+import {api as jellyfinApi, getServerUrl} from '../../services/jellyfinApi';
 import {detectWebOSVersion, getH264FallbackProfile} from '@moonfin/platform-webos/deviceProfile';
 import {initPgsRenderer, disposePgsRenderer} from '../../utils/pgsRenderer';
 import {
@@ -24,6 +24,11 @@ import useSegmentPopups from './useSegmentPopups';
 import {
 	SpottableButton, NextEpisodeContainer, CONTROLS_HIDE_DELAY
 } from './PlayerConstants';
+import {
+	toSubtitleLanguage,
+	mapSubtitleStreamsFromMediaSource,
+	mapRemoteSubtitleOptions
+} from './remoteSubtitleUtils';
 
 import css from './WebOSPlayer.module.less';
 
@@ -53,6 +58,8 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [activeModal, setActiveModal] = useState(null);
 	const [playbackRate, setPlaybackRate] = useState(1);
 	const [selectedQuality, setSelectedQuality] = useState(null);
+	const [remoteSubtitleResults, setRemoteSubtitleResults] = useState([]);
+	const [isSearchingRemoteSubtitles, setIsSearchingRemoteSubtitles] = useState(false);
 	const [mediaSegments, setMediaSegments] = useState(null);
 	const [nextEpisode, setNextEpisode] = useState(null);
 	const [isSeeking, setIsSeeking] = useState(false);
@@ -1280,6 +1287,121 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		openModal('subtitleSettings');
 	}, [openModal]);
 
+	const applySubtitleSelection = useCallback(async (index, streamList = subtitleStreams, shouldClose = true) => {
+		playback.updateCurrentSession({subtitleStreamIndex: index});
+
+		disposePgsRenderer(pgsRendererRef.current);
+		pgsRendererRef.current = null;
+
+		if (index === -1) {
+			setSelectedSubtitleIndex(-1);
+			setSubtitleTrackEvents(null);
+			setCurrentSubtitleText(null);
+		} else {
+			setSelectedSubtitleIndex(index);
+			const stream = streamList.find(s => s.index === index);
+
+			if (stream && stream.isTextBased) {
+				try {
+					const data = await playback.fetchSubtitleData(stream);
+					if (data && data.TrackEvents) {
+						setSubtitleTrackEvents(data.TrackEvents);
+					} else {
+						setSubtitleTrackEvents(null);
+					}
+				} catch (err) {
+					setSubtitleTrackEvents(null);
+				}
+			} else if (stream && stream.isImageBased && settings.enablePgsRendering) {
+				if (videoRef.current) {
+					try {
+						const renderer = await initPgsRenderer(videoRef.current, stream, {
+							opacity: settings.subtitleOpacity,
+							scale: 1.0
+						});
+						if (renderer) {
+							pgsRendererRef.current = renderer;
+							setSubtitleTrackEvents(null);
+						} else {
+							setSubtitleTrackEvents(null);
+						}
+					} catch (err) {
+						setSubtitleTrackEvents(null);
+					}
+				}
+			} else {
+				setSubtitleTrackEvents(null);
+			}
+			setCurrentSubtitleText(null);
+		}
+
+		if (shouldClose) {
+			closeModal();
+		}
+	}, [subtitleStreams, closeModal, settings.enablePgsRendering, settings.subtitleOpacity]);
+
+	const handleOpenRemoteSubtitleSearch = useCallback(async () => {
+		if (!item?.Id) return;
+
+		setRemoteSubtitleResults([]);
+		setIsSearchingRemoteSubtitles(true);
+		openModal('subtitleDownload');
+
+		const selectedSubtitle = subtitleStreams.find((s) => s.index === selectedSubtitleIndex);
+		const selectedAudio = audioStreams.find((s) => s.index === selectedAudioIndex);
+		const language = toSubtitleLanguage(
+			selectedSubtitle?.language,
+			selectedAudio?.language,
+			subtitleStreams[0]?.language,
+			audioStreams[0]?.language
+		);
+
+		try {
+			const results = await jellyfinApi.searchRemoteSubtitles(item.Id, language);
+			setRemoteSubtitleResults(mapRemoteSubtitleOptions(results));
+			window.requestAnimationFrame(() => {
+				const firstResult = document.querySelector('[data-modal="subtitleDownload"] button');
+				if (firstResult) Spotlight.focus(firstResult);
+			});
+		} catch (err) {
+			setRemoteSubtitleResults([]);
+		} finally {
+			setIsSearchingRemoteSubtitles(false);
+		}
+	}, [item, subtitleStreams, selectedSubtitleIndex, audioStreams, selectedAudioIndex, openModal]);
+
+	const handleSelectRemoteSubtitle = useCallback(async (e) => {
+		const index = parseInt(e.currentTarget.dataset.index, 10);
+		if (isNaN(index) || !remoteSubtitleResults[index] || !item?.Id) return;
+
+		try {
+			await jellyfinApi.downloadRemoteSubtitle(item.Id, remoteSubtitleResults[index].id);
+
+			const existingIndexes = new Set(subtitleStreams.map((s) => s.index));
+			const startTicks = Math.floor((videoRef.current?.currentTime || 0) * 10000000);
+			const info = await jellyfinApi.getPlaybackInfo(item.Id, {
+				StartTimeTicks: startTicks,
+				MediaSourceId: mediaSourceId,
+				AudioStreamIndex: selectedAudioIndex,
+				SubtitleStreamIndex: selectedSubtitleIndex,
+				MaxStreamingBitrate: selectedQuality || settings.maxBitrate
+			});
+
+			const mediaSource = info?.MediaSources?.find((source) => source.Id === mediaSourceId) || info?.MediaSources?.[0];
+			const refreshedSubtitleStreams = mapSubtitleStreamsFromMediaSource(mediaSource, getServerUrl());
+			setSubtitleStreams(refreshedSubtitleStreams);
+
+			const newStream = refreshedSubtitleStreams.find((stream) => !existingIndexes.has(stream.index));
+			if (newStream) {
+				await applySubtitleSelection(newStream.index, refreshedSubtitleStreams, true);
+			} else {
+				setActiveModal('subtitle');
+			}
+		} catch (err) {
+			setActiveModal('subtitle');
+		}
+	}, [remoteSubtitleResults, item, subtitleStreams, mediaSourceId, selectedAudioIndex, selectedSubtitleIndex, selectedQuality, settings.maxBitrate, applySubtitleSelection]);
+
 	// Track selection - using data attributes to avoid arrow functions in JSX
 	const handleSelectAudio = useCallback(async (e) => {
 		const index = parseInt(e.currentTarget.dataset.index, 10);
@@ -1347,56 +1469,8 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const handleSelectSubtitle = useCallback(async (e) => {
 		const index = parseInt(e.currentTarget.dataset.index, 10);
 		if (isNaN(index)) return;
-		playback.updateCurrentSession({subtitleStreamIndex: index});
-
-		disposePgsRenderer(pgsRendererRef.current);
-		pgsRendererRef.current = null;
-
-		if (index === -1) {
-			setSelectedSubtitleIndex(-1);
-			setSubtitleTrackEvents(null);
-			setCurrentSubtitleText(null);
-		} else {
-			setSelectedSubtitleIndex(index);
-			const stream = subtitleStreams.find(s => s.index === index);
-
-			if (stream && stream.isTextBased) {
-				try {
-					const data = await playback.fetchSubtitleData(stream);
-					if (data && data.TrackEvents) {
-						setSubtitleTrackEvents(data.TrackEvents);
-					} else {
-						setSubtitleTrackEvents(null);
-					}
-				} catch (err) {
-					console.error('[Player] Error fetching subtitle data:', err);
-					setSubtitleTrackEvents(null);
-				}
-			} else if (stream && stream.isImageBased && settings.enablePgsRendering) {
-				if (videoRef.current) {
-					try {
-						const renderer = await initPgsRenderer(videoRef.current, stream, {
-							opacity: settings.subtitleOpacity,
-							scale: 1.0
-						});
-						if (renderer) {
-							pgsRendererRef.current = renderer;
-							setSubtitleTrackEvents(null);
-						} else {
-							setSubtitleTrackEvents(null);
-						}
-					} catch (err) {
-						console.error('[Player] Error initializing PGS renderer:', err);
-						setSubtitleTrackEvents(null);
-					}
-				}
-			} else {
-				setSubtitleTrackEvents(null);
-			}
-			setCurrentSubtitleText(null);
-		}
-		closeModal();
-	}, [subtitleStreams, closeModal, settings.enablePgsRendering, settings.subtitleOpacity]);
+		await applySubtitleSelection(index, subtitleStreams, true);
+	}, [applySubtitleSelection, subtitleStreams]);
 
 	const handleSelectSpeed = useCallback((e) => {
 		const rate = parseFloat(e.currentTarget.dataset.rate);
@@ -1837,6 +1911,11 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				handleSelectChapter={handleSelectChapter}
 				handleOpenSubtitleOffset={handleOpenSubtitleOffset}
 				handleOpenSubtitleSettings={handleOpenSubtitleSettings}
+				handleOpenRemoteSubtitleSearch={handleOpenRemoteSubtitleSearch}
+				handleSelectRemoteSubtitle={handleSelectRemoteSubtitle}
+				canDownloadRemoteSubtitles={!isAudioMode && Boolean(item?.Id)}
+				isSearchingRemoteSubtitles={isSearchingRemoteSubtitles}
+				remoteSubtitleResults={remoteSubtitleResults}
 				handleSubtitleOffsetChange={handleSubtitleOffsetChange}
 				closeModal={closeModal}
 				stopPropagation={stopPropagation}

@@ -315,6 +315,16 @@ export const api = {
 	getMediaStreams: (itemId) =>
 		request(`/Items/${itemId}?Fields=MediaStreams`),
 
+	searchRemoteSubtitles: (itemId, language = 'eng', isPerfectMatch = null) => {
+		const query = isPerfectMatch === null ? '' : `?IsPerfectMatch=${isPerfectMatch}`;
+		return request(`/Items/${itemId}/RemoteSearch/Subtitles/${encodeURIComponent(language)}${query}`);
+	},
+
+	downloadRemoteSubtitle: (itemId, subtitleId) =>
+		request(`/Items/${itemId}/RemoteSearch/Subtitles/${encodeURIComponent(subtitleId)}`, {
+			method: 'POST'
+		}),
+
 	getNextEpisode: (seriesId, currentEpisodeId) =>
 		request(`/Shows/NextUp?UserId=${currentUser}&SeriesId=${seriesId}&StartItemId=${currentEpisodeId}&Limit=1`),
 
@@ -507,6 +517,16 @@ export const createApiForServer = (serverUrl, token, userId) => {
 
 		getPlaybackInfo: (itemId) =>
 			serverRequest(`/Items/${itemId}/PlaybackInfo?UserId=${userId}`),
+
+		searchRemoteSubtitles: (itemId, language = 'eng', isPerfectMatch = null) => {
+			const query = isPerfectMatch === null ? '' : `?IsPerfectMatch=${isPerfectMatch}`;
+			return serverRequest(`/Items/${itemId}/RemoteSearch/Subtitles/${encodeURIComponent(language)}${query}`);
+		},
+
+		downloadRemoteSubtitle: (itemId, subtitleId) =>
+			serverRequest(`/Items/${itemId}/RemoteSearch/Subtitles/${encodeURIComponent(subtitleId)}`, {
+				method: 'POST'
+			}),
 
 		reportPlaybackStart: (data) => serverRequest('/Sessions/Playing', {
 			method: 'POST',
