@@ -10,6 +10,8 @@ import {
 	avplayGetTracks, avplaySetDisplayMethod, setDisplayWindow, cleanupAVPlay
 } from '@moonfin/platform-tizen/video';
 import {useSettings} from '../../context/SettingsContext';
+import {useSyncPlay} from '../../context/SyncPlayContext';
+import * as syncPlayService from '../../services/syncPlay';
 import {KEYS, isBackKey} from '../../utils/keys';
 import {getImageUrl} from '../../utils/helpers';
 import {initPgsParser, disposePgsParser, renderPgsFrame, clearPgsCanvas} from '../../utils/pgsRenderer';
@@ -35,6 +37,9 @@ import css from './TizenPlayer.module.less';
  */
 const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
 	const {settings} = useSettings();
+	const {isInGroup, lastCommand} = useSyncPlay();
+	const syncPlayCommandRef = useRef(false);
+	const lastProcessedCommandRef = useRef(null);
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [isBuffering, setIsBuffering] = useState(false);
@@ -925,6 +930,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 	const handlePlayPause = useCallback(() => {
 		const state = avplayGetState();
+		if (isInGroup && !syncPlayCommandRef.current) {
+			if (state === 'PLAYING') {
+				syncPlayService.sendPauseRequest();
+			} else {
+				syncPlayService.sendPlayRequest();
+			}
+			return;
+		}
 		if (state === 'PLAYING') {
 			avplayPause();
 			setIsPaused(true);
@@ -940,23 +953,33 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			setIsPaused(false);
 			playback.reportProgress(positionRef.current, { isPaused: false, eventName: 'unpause' });
 		}
-	}, [settings.unpauseRewind]);
+	}, [settings.unpauseRewind, isInGroup]);
 
 	const handleRewind = useCallback(() => {
 		if (!avplayReadyRef.current) return;
+		if (isInGroup && !syncPlayCommandRef.current) {
+			const newTicks = Math.max(0, positionRef.current - settings.seekStep * 10000000);
+			syncPlayService.sendSeekRequest(newTicks);
+			return;
+		}
 		const ms = avplayGetCurrentTime();
 		const newMs = Math.max(0, ms - settings.seekStep * 1000);
 		avplaySeek(newMs).catch(e => console.warn('[Player] Seek failed:', e));
-	}, [settings.seekStep]);
+	}, [settings.seekStep, isInGroup]);
 
 	const handleForward = useCallback(() => {
 		if (!avplayReadyRef.current) return;
+		if (isInGroup && !syncPlayCommandRef.current) {
+			const newTicks = Math.min(runTimeRef.current, positionRef.current + settings.seekStep * 10000000);
+			syncPlayService.sendSeekRequest(newTicks);
+			return;
+		}
 		const ms = avplayGetCurrentTime();
 		const durationMs = avplayGetDuration();
 		const step = settings.skipForwardLength || settings.seekStep;
 		const newMs = Math.min(durationMs, ms + step * 1000);
 		avplaySeek(newMs).catch(e => console.warn('[Player] Seek failed:', e));
-	}, [settings.skipForwardLength, settings.seekStep]);
+	}, [settings.skipForwardLength, settings.seekStep, isInGroup]);
 
 	// Modal handlers
 	const openModal = useCallback((modal) => {
@@ -1382,6 +1405,93 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			setActiveModal('subtitle');
 		}
 	}, [remoteSubtitleResults, item, subtitleStreams, mediaSourceId, selectedAudioIndex, selectedSubtitleIndex, selectedQuality, settings.maxBitrate, applySubtitleSelection]);
+
+	useEffect(() => {
+		if (!lastCommand || !avplayReadyRef.current) return;
+		if (lastCommand === lastProcessedCommandRef.current) return;
+		lastProcessedCommandRef.current = lastCommand;
+
+		const {Command, PositionTicks, When} = lastCommand;
+
+		syncPlayCommandRef.current = true;
+
+		switch (Command) {
+			case 'Unpause': {
+				const delay = syncPlayService.getDelayToWhen(When);
+				if (PositionTicks != null) {
+					avplaySeek(Math.floor(PositionTicks / 10000)).catch(() => {});
+				}
+				if (delay > 0) {
+					const t = setTimeout(() => {
+						avplayPlay();
+						setIsPaused(false);
+						syncPlayCommandRef.current = false;
+					}, delay);
+					return () => clearTimeout(t);
+				}
+				avplayPlay();
+				setIsPaused(false);
+				break;
+			}
+			case 'Pause': {
+				avplayPause();
+				setIsPaused(true);
+				if (PositionTicks != null) {
+					avplaySeek(Math.floor(PositionTicks / 10000)).catch(() => {});
+				}
+				break;
+			}
+			case 'Seek': {
+				if (PositionTicks != null) {
+					avplaySeek(Math.floor(PositionTicks / 10000)).catch(() => {});
+				}
+				break;
+			}
+			case 'Stop': {
+				handleBack();
+				break;
+			}
+			default:
+				break;
+		}
+
+		syncPlayCommandRef.current = false;
+	}, [lastCommand, handleBack]);
+
+	useEffect(() => {
+		if (!isInGroup) return;
+
+		const listener = syncPlayService.addListener((event) => {
+			if (event === 'stateUpdate') {
+				const state = avplayGetState();
+				if (state === 'PLAYING' || state === 'PAUSED') {
+					syncPlayService.sendReadyRequest(
+						state === 'PLAYING',
+						positionRef.current
+					);
+				}
+			}
+		});
+
+		return listener;
+	}, [isInGroup]);
+
+	useEffect(() => {
+		if (!isInGroup) return;
+		if (isBuffering) {
+			const state = avplayGetState();
+			syncPlayService.sendBufferingRequest(
+				state === 'PLAYING',
+				positionRef.current
+			);
+		} else if (avplayReadyRef.current) {
+			const state = avplayGetState();
+			syncPlayService.sendReadyRequest(
+				state === 'PLAYING',
+				positionRef.current
+			);
+		}
+	}, [isInGroup, isBuffering]);
 
 	// ==============================
 	// Global Key Handler

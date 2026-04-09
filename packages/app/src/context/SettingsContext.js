@@ -88,7 +88,8 @@ const defaultSettings = {
 	screensaverAgeFilter: false,
 	screensaverMaxRating: 13,
 	uiScale: 1.0,
-	enablePgsRendering: true
+	enablePgsRendering: true,
+	showSyncPlayButton: true
 };
 
 export {DEFAULT_HOME_ROWS};
@@ -171,6 +172,7 @@ const SYNCABLE_KEYS = [
 	'backdropBlurHome', 'backdropBlurDetail',
 	'mediaBarSourceType', 'mediaBarLibraryIds', 'mediaBarCollectionIds',
 	'homeRows',
+	'showSyncPlayButton',
 ];
 
 const profileToLocal = (serverProfile) => {

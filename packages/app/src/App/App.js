@@ -11,6 +11,7 @@ import {isTizen, isWebOS} from '../platform';
 import {initVideo, cleanupVideoElement, setupVisibilityHandler, setupPlatformLifecycle} from '../services/video';
 import {SettingsProvider} from '../context/SettingsContext';
 import {JellyseerrProvider} from '../context/JellyseerrContext';
+import {SyncPlayProvider, useSyncPlay} from '../context/SyncPlayContext';
 import {useVersionCheck} from '../hooks/useVersionCheck';
 import UpdateNotification from '../components/UpdateNotification';
 import NavBar from '../components/NavBar';
@@ -20,6 +21,7 @@ import ExitDialog from '../components/ExitDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Screensaver from '../components/Screensaver';
 import SeasonalTheme from '../components/SeasonalTheme';
+import SyncPlayDialog from '../components/SyncPlayDialog';
 import PhotoViewer from '../components/PhotoViewer';
 import ComicViewer from '../components/ComicViewer';
 import useInactivityTimer from '../hooks/useInactivityTimer';
@@ -99,6 +101,7 @@ const AppContent = (props) => {
 	const {isAuthenticated, isLoading, logout, serverUrl, serverName, api, user, hasMultipleServers, accessToken} = useAuth();
 	const {settings} = useSettings();
 	const themeMusic = useThemeMusic();
+	const {openDialog: openSyncPlay, closeDialog: closeSyncPlay, isDialogOpen: syncPlayDialogOpen, playQueueItem, clearPlayQueueItem, isInGroup: isSyncPlayInGroup, setNewQueue: syncPlaySetNewQueue} = useSyncPlay();
 	const unifiedMode = settings.unifiedLibraryMode && hasMultipleServers;
 	const [panelIndex, setPanelIndex] = useState(PANELS.LOGIN);
 	const [selectedItem, setSelectedItem] = useState(null);
@@ -521,11 +524,26 @@ const AppContent = (props) => {
 			setComicViewerItem(item);
 			return;
 		}
+		if (isSyncPlayInGroup) {
+			syncPlaySetNewQueue([item.Id]);
+		}
 		setPlayingItem(item);
 		setPlaybackOptions(options || null);
 		setIsResume(!!resume);
 		navigateTo(PANELS.PLAYER);
-	}, [navigateTo]);
+	}, [navigateTo, isSyncPlayInGroup, syncPlaySetNewQueue]);
+
+	useEffect(() => {
+		if (playQueueItem) {
+			if (!playingItem || playingItem.Id !== playQueueItem.Id) {
+				setPlayingItem(playQueueItem);
+				setPlaybackOptions(null);
+				setIsResume(false);
+				navigateTo(PANELS.PLAYER);
+			}
+			clearPlayQueueItem();
+		}
+	}, [playQueueItem, playingItem, navigateTo, clearPlayQueueItem]);
 
 	const handlePlayNext = useCallback((item) => {
 		setPlayingItem(item);
@@ -739,6 +757,7 @@ const AppContent = (props) => {
 					onGenres={handleOpenGenres}
 					onFavorites={handleOpenFavorites}
 					onDiscover={handleOpenJellyseerr}
+					onSyncPlay={openSyncPlay}
 					onSettings={handleOpenSettings}
 					onSelectLibrary={handleSelectLibrary}
 					onUserMenu={handleOpenAccountModal}
@@ -753,6 +772,7 @@ const AppContent = (props) => {
 					onGenres={handleOpenGenres}
 					onFavorites={handleOpenFavorites}
 					onDiscover={handleOpenJellyseerr}
+					onSyncPlay={openSyncPlay}
 					onSettings={handleOpenSettings}
 					onSelectLibrary={handleSelectLibrary}
 					onUserMenu={handleOpenAccountModal}
@@ -946,6 +966,10 @@ const AppContent = (props) => {
 				onCancel={handleCancelExitDialog}
 				onExit={performAppCleanup}
 			/>
+			<SyncPlayDialog
+				open={syncPlayDialogOpen}
+				onClose={closeSyncPlay}
+			/>
 			<UpdateNotification
 				updateInfo={updateInfo}
 				formattedNotes={formattedNotes}
@@ -986,7 +1010,9 @@ const AppBase = (props) => (
 	<SettingsProvider>
 		<AuthProvider>
 			<JellyseerrProvider>
-				<AppContent {...props} />
+				<SyncPlayProvider>
+					<AppContent {...props} />
+				</SyncPlayProvider>
 			</JellyseerrProvider>
 		</AuthProvider>
 	</SettingsProvider>

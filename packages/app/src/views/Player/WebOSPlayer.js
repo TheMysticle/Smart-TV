@@ -18,6 +18,8 @@ import {
 	setupWebOSLifecycle
 } from '@moonfin/platform-webos/video';
 import {useSettings} from '../../context/SettingsContext';
+import {useSyncPlay} from '../../context/SyncPlayContext';
+import * as syncPlayService from '../../services/syncPlay';
 import {getSubtitleOverlayStyle, getSubtitleTextStyle, sanitizeSubtitleHtml} from '../../utils/subtitleConstants';
 import PlayerControls, {usePlayerButtons} from './PlayerControls';
 import useSegmentPopups from './useSegmentPopups';
@@ -35,6 +37,9 @@ import css from './WebOSPlayer.module.less';
 
 const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
 	const {settings} = useSettings();
+	const {isInGroup, lastCommand} = useSyncPlay();
+	const syncPlayCommandRef = useRef(false);
+	const lastProcessedCommandRef = useRef(null);
 
 	const [mediaUrl, setMediaUrl] = useState(null);
 	const [mimeType, setMimeType] = useState('video/mp4');
@@ -1361,6 +1366,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 	const handlePlayPause = useCallback(() => {
 		if (videoRef.current) {
+			if (isInGroup && !syncPlayCommandRef.current) {
+				if (isPaused) {
+					syncPlayService.sendPlayRequest();
+				} else {
+					syncPlayService.sendPauseRequest();
+				}
+				return;
+			}
 			if (isPaused) {
 				const rewind = settings.unpauseRewind || 0;
 				if (rewind > 0) {
@@ -1372,15 +1385,29 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				videoRef.current.pause();
 			}
 		}
-	}, [isPaused, settings.unpauseRewind]);
+	}, [isPaused, settings.unpauseRewind, isInGroup]);
 
 	const handleRewind = useCallback(() => {
-		if (videoRef.current) seekByOffset(-settings.seekStep);
-	}, [settings.seekStep, seekByOffset]);
+		if (videoRef.current) {
+			if (isInGroup && !syncPlayCommandRef.current) {
+				const newTicks = Math.max(0, positionRef.current - settings.seekStep * 10000000);
+				syncPlayService.sendSeekRequest(newTicks);
+				return;
+			}
+			seekByOffset(-settings.seekStep);
+		}
+	}, [settings.seekStep, seekByOffset, isInGroup]);
 
 	const handleForward = useCallback(() => {
-		if (videoRef.current) seekByOffset(settings.skipForwardLength || settings.seekStep);
-	}, [settings.skipForwardLength, settings.seekStep, seekByOffset]);
+		if (videoRef.current) {
+			if (isInGroup && !syncPlayCommandRef.current) {
+				const newTicks = Math.min(runTimeRef.current, positionRef.current + settings.seekStep * 10000000);
+				syncPlayService.sendSeekRequest(newTicks);
+				return;
+			}
+			seekByOffset(settings.skipForwardLength || settings.seekStep);
+		}
+	}, [settings.skipForwardLength, settings.seekStep, seekByOffset, isInGroup]);
 
 	const openModal = useCallback((modal) => {
 		setActiveModal(modal);
@@ -1741,6 +1768,78 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const stopPropagation = useCallback((e) => {
 		e.stopPropagation();
 	}, []);
+
+	useEffect(() => {
+		if (!lastCommand || !videoRef.current) return;
+		if (lastCommand === lastProcessedCommandRef.current) return;
+		lastProcessedCommandRef.current = lastCommand;
+
+		const {Command, PositionTicks, When} = lastCommand;
+
+		syncPlayCommandRef.current = true;
+
+		switch (Command) {
+			case 'Unpause': {
+				const delay = syncPlayService.getDelayToWhen(When);
+				if (PositionTicks != null) seekToTicks(PositionTicks);
+				if (delay > 0) {
+					const t = setTimeout(() => {
+						videoRef.current?.play()?.catch?.(() => {});
+						syncPlayCommandRef.current = false;
+					}, delay);
+					return () => clearTimeout(t);
+				}
+				videoRef.current.play()?.catch?.(() => {});
+				break;
+			}
+			case 'Pause': {
+				videoRef.current.pause();
+				if (PositionTicks != null) seekToTicks(PositionTicks);
+				break;
+			}
+			case 'Seek': {
+				if (PositionTicks != null) seekToTicks(PositionTicks);
+				break;
+			}
+			case 'Stop': {
+				handleBack();
+				break;
+			}
+			default:
+				break;
+		}
+
+		syncPlayCommandRef.current = false;
+	}, [lastCommand, seekToTicks, handleBack]);
+
+	useEffect(() => {
+		if (!isInGroup || !videoRef.current) return;
+
+		const reportBuffering = () => {
+			syncPlayService.sendBufferingRequest(
+				!videoRef.current.paused,
+				positionRef.current
+			);
+		};
+
+		const reportReady = () => {
+			syncPlayService.sendReadyRequest(
+				!videoRef.current.paused,
+				positionRef.current
+			);
+		};
+
+		const video = videoRef.current;
+		video.addEventListener('waiting', reportBuffering);
+		video.addEventListener('playing', reportReady);
+		video.addEventListener('canplay', reportReady);
+
+		return () => {
+			video.removeEventListener('waiting', reportBuffering);
+			video.removeEventListener('playing', reportReady);
+			video.removeEventListener('canplay', reportReady);
+		};
+	}, [isInGroup]);
 
 	useEffect(() => {
 		const handleKeyDown = (e) => {
