@@ -759,11 +759,16 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	}, []);
 
 	const onPlayNextWithCleanup = useCallback(async (episode) => {
+		const session = playback.getCurrentSession();
+		const trackOptions = session ? {
+			audioStreamIndex: session.audioStreamIndex,
+			subtitleStreamIndex: session.subtitleStreamIndex
+		} : null;
 		stopTimeUpdatePolling();
 		await playback.reportStop(positionRef.current);
 		cleanupAVPlay();
 		avplayReadyRef.current = false;
-		onPlayNext(episode);
+		onPlayNext(episode, trackOptions);
 	}, [onPlayNext, stopTimeUpdatePolling]);
 
 	const onSeekToIntroEnd = useCallback(() => {

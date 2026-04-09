@@ -549,9 +549,9 @@ const AppContent = (props) => {
 		}
 	}, [playQueueItem, playingItem, navigateTo, clearPlayQueueItem]);
 
-	const handlePlayNext = useCallback((item) => {
+	const handlePlayNext = useCallback((item, trackOptions) => {
 		setPlayingItem(item);
-		setPlaybackOptions(null);
+		setPlaybackOptions(trackOptions || null);
 		setIsResume(false);
 	}, []);
 

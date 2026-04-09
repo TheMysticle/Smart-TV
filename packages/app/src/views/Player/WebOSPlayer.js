@@ -999,8 +999,13 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	}, [hasTriedTranscode, playMethod]);
 
 	const onPlayNextWithCleanup = useCallback(async (episode) => {
+		const session = playback.getCurrentSession();
+		const trackOptions = session ? {
+			audioStreamIndex: session.audioStreamIndex,
+			subtitleStreamIndex: session.subtitleStreamIndex
+		} : null;
 		await playback.reportStop(positionRef.current);
-		onPlayNext(episode);
+		onPlayNext(episode, trackOptions);
 	}, [onPlayNext]);
 
 	const onSeekToIntroEnd = useCallback(() => {
