@@ -29,7 +29,8 @@
 
 		"locales": [
 			"en-US",
-			"pl"
+			"pl",
+			"ru"
 		],
 		"ilib": true,
 		"screenTypes": [

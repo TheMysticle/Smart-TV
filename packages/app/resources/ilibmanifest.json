@@ -1,7 +1,8 @@
 {
 	"files": [
 		"strings.json",
-		"pl/strings.json"
+		"pl/strings.json",
+		"ru/strings.json"
 	],
-	"locales": ["en-US", "pl"]
+	"locales": ["en-US", "pl", "ru"]
 }

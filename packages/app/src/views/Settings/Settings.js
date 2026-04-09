@@ -215,7 +215,8 @@ const getClockDisplayOptions = () => [
 // Labels intentionally not wrapped with $L() — language names display in their native language regardless of current locale
 const LANGUAGE_OPTIONS = [
 	{value: 'en-US', label: 'English'},
-	{value: 'pl', label: 'Polski'}
+	{value: 'pl', label: 'Polski'},
+	{value: 'ru', label: 'Русский'}
 ];
 
 const getNavPositionOptions = () => [
