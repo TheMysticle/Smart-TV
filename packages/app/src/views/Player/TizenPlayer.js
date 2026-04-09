@@ -301,7 +301,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	useEffect(() => {
 		const init = async () => {
 			await initTizenAPI();
-			await keepScreenOn(true);
+			await keepScreenOn(!isPaused);
 
 			// Make ALL ancestor backgrounds transparent so AVPlay video layer shows through.
 			// Enact's ThemeDecorator, Panels, and Panel components all inject opaque

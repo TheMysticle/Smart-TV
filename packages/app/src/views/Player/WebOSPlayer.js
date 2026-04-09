@@ -226,7 +226,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	useEffect(() => {
 		const init = async () => {
 			await initLunaAPI();
-			await keepScreenOn(true);
+			await keepScreenOn(!isPaused);
 
 			unregisterAppStateRef.current = registerAppStateObserver(
 				() => {
