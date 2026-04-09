@@ -216,6 +216,7 @@ const getClockDisplayOptions = () => [
 const LANGUAGE_OPTIONS = [
 	{value: 'de', label: 'Deutsch'},
 	{value: 'en-US', label: 'English'},
+	{value: 'es', label: 'Español'},
 	{value: 'pl', label: 'Polski'},
 	{value: 'pt-BR', label: 'Português (Brasil)'},
 	{value: 'ru', label: 'Русский'}
