@@ -2,6 +2,8 @@ import {useState, useCallback, useEffect, lazy, Suspense, useRef} from 'react';
 import ThemeDecorator from '@enact/sandstone/ThemeDecorator';
 import {Panels, Panel} from '@enact/sandstone/Panels';
 
+import ilib from 'ilib';
+
 import {AuthProvider, useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import * as playback from '../services/playback';
@@ -1017,6 +1019,20 @@ const AppContent = (props) => {
 	);
 };
 
+let storedLocale = 'en-US';
+try {
+	const stored = JSON.parse(localStorage.getItem('moonfin_settings') || '{}');
+	storedLocale = stored.uiLanguage || 'en-US';
+} catch (e) { /* use default */ }
+
+// Pre-populate ilib.data with all locale strings so loadData() finds them
+// cached and skips synchronous XHR (which fails silently on Tizen).
+const localeContext = require.context('../../resources', true, /^\.[\/][a-z]{2}(-[A-Z]{2})?\/strings\.json$/);
+localeContext.keys().forEach((key) => {
+	const lang = key.split('/')[1];
+	ilib.data['strings_' + lang] = localeContext(key);
+});
+
 const AppBase = (props) => (
 	<SettingsProvider>
 		<AuthProvider>
@@ -1029,5 +1045,6 @@ const AppBase = (props) => (
 	</SettingsProvider>
 );
 
-const App = ThemeDecorator(AppBase);
+const AppThemed = ThemeDecorator(AppBase);
+const App = (props) => <AppThemed {...props} locale={storedLocale} />;
 export default App;

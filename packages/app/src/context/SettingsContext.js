@@ -16,6 +16,7 @@ const defaultSettings = {
 	maxBitrate: 0,
 	audioLanguage: '',
 	subtitleLanguage: '',
+	uiLanguage: 'en-US',
 	subtitleMode: 'default',
 	subtitleSize: 'medium',
 	subtitlePosition: 'bottom',
@@ -173,6 +174,7 @@ const SYNCABLE_KEYS = [
 	'mediaBarSourceType', 'mediaBarLibraryIds', 'mediaBarCollectionIds',
 	'homeRows',
 	'showSyncPlayButton',
+	'uiLanguage',
 ];
 
 const profileToLocal = (serverProfile) => {
