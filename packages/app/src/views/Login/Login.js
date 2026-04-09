@@ -4,6 +4,8 @@ import SpotlightContainerDecorator from '@enact/spotlight/SpotlightContainerDeco
 import Spotlight from '@enact/spotlight';
 import {useAuth} from '../../context/AuthContext';
 import * as jellyfinApi from '../../services/jellyfinApi';
+import {generateCandidates} from '../../utils/serverUrl';
+import {classifyError, getConnectionMessage, getLoginMessage, isVersionSupported, INVALID_ADDRESS, SERVER_NOT_JELLYFIN, VERSION_UNSUPPORTED, MIN_SERVER_VERSION} from '../../utils/connectionErrors';
 import {KEYS} from '../../utils/keys';
 import SpottableInput from '../../components/SpottableInput/SpottableInput';
 
@@ -59,40 +61,72 @@ const Login = ({
 
 		setIsConnecting(true);
 		setError(null);
-		setStatus('Connecting to server...');
 
-		try {
-			jellyfinApi.setServer(serverUrl);
-			const info = await jellyfinApi.api.getPublicInfo();
-			if (!info) {
-				throw new Error('Server returned empty response - check if server is reachable');
-			}
-			setServerInfo(info);
-			setStatus(`Connected to ${info.ServerName}! Loading users...`);
+		const candidates = generateCandidates(serverUrl);
+		if (candidates.length === 0) {
+			setError(getConnectionMessage(INVALID_ADDRESS));
+			setIsConnecting(false);
+			return;
+		}
+
+		let connected = false;
+		let lastErrorType = null;
+		for (const candidate of candidates) {
+			setStatus('Trying ' + candidate + '...');
+			jellyfinApi.setServer(candidate);
 
 			try {
-				const users = await jellyfinApi.api.getPublicUsers();
-				setPublicUsers(users || []);
-				if (users && users.length > 0) {
-					setStep('users');
+				const info = await jellyfinApi.api.getPublicInfo();
+				if (!info) continue;
+
+				if (!info.ProductName || !info.ProductName.toLowerCase().includes('jellyfin')) {
+					lastErrorType = SERVER_NOT_JELLYFIN;
+					continue;
+				}
+
+				if (!isVersionSupported(info.Version)) {
+					lastErrorType = VERSION_UNSUPPORTED;
+					setError('Server version ' + info.Version + ' is not supported. Minimum: ' + MIN_SERVER_VERSION + '.');
 					setStatus(null);
-					setTimeout(() => Spotlight.focus('[data-spotlight-id="user-0"]'), 100);
-				} else {
+					setIsConnecting(false);
+					return;
+				}
+
+				setServerUrl(candidate);
+				setServerInfo(info);
+				setStatus('Connected to ' + info.ServerName + '! Loading users...');
+				connected = true;
+
+				try {
+					const users = await jellyfinApi.api.getPublicUsers();
+					setPublicUsers(users || []);
+					if (users && users.length > 0) {
+						setStep('users');
+						setStatus(null);
+						setTimeout(() => Spotlight.focus('[data-spotlight-id="user-0"]'), 100);
+					} else {
+						setStep('manual');
+						setStatus(null);
+						setTimeout(() => Spotlight.focus('[data-spotlight-id="username-input"]'), 100);
+					}
+				} catch {
 					setStep('manual');
 					setStatus(null);
 					setTimeout(() => Spotlight.focus('[data-spotlight-id="username-input"]'), 100);
 				}
-			} catch {
-				setStep('manual');
-				setStatus(null);
-				setTimeout(() => Spotlight.focus('[data-spotlight-id="username-input"]'), 100);
+				break;
+			} catch (err) {
+				lastErrorType = classifyError(err) || lastErrorType;
+				continue;
 			}
-		} catch (err) {
-			setError('Failed to connect to server. Check the address and try again.');
-			setStatus(null);
-		} finally {
-			setIsConnecting(false);
 		}
+
+		if (!connected) {
+			setError(getConnectionMessage(lastErrorType));
+			setStatus(null);
+		}
+
+		setIsConnecting(false);
 	}, [serverUrl]);
 
 	// If we have a pending server, adding user to existing, or a stored server (auto-login disabled), auto-connect
@@ -192,7 +226,7 @@ const Login = ({
 			}
 		} catch (err) {
 			console.error('Login error:', err);
-			setError(err.message || 'Login failed. Check your credentials.');
+			setError(getLoginMessage(classifyError(err)));
 			setStatus(null);
 		} finally {
 			setIsConnecting(false);

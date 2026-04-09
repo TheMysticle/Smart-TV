@@ -21,6 +21,7 @@ import ExitDialog from '../components/ExitDialog';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Screensaver from '../components/Screensaver';
 import SeasonalTheme from '../components/SeasonalTheme';
+import NoConnection from '../components/NoConnection/NoConnection';
 import SyncPlayDialog from '../components/SyncPlayDialog';
 import PhotoViewer from '../components/PhotoViewer';
 import ComicViewer from '../components/ComicViewer';
@@ -98,7 +99,7 @@ const PANELS = {
 };
 
 const AppContent = (props) => {
-	const {isAuthenticated, isLoading, logout, serverUrl, serverName, api, user, hasMultipleServers, accessToken} = useAuth();
+	const {isAuthenticated, isLoading, logout, serverUrl, serverName, api, user, hasMultipleServers, accessToken, connectionState, revalidateSession} = useAuth();
 	const {settings} = useSettings();
 	const themeMusic = useThemeMusic();
 	const {openDialog: openSyncPlay, closeDialog: closeSyncPlay, isDialogOpen: syncPlayDialogOpen, playQueueItem, clearPlayQueueItem, isInGroup: isSyncPlayInGroup, setNewQueue: syncPlaySetNewQueue} = useSyncPlay();
@@ -264,6 +265,7 @@ const AppContent = (props) => {
 
 		const handleVisibilityVisible = () => {
 			console.log('[App] App visible/resumed');
+			revalidateSession();
 		};
 
 		const handleRelaunch = (params) => {
@@ -316,7 +318,7 @@ const AppContent = (props) => {
 				cleanupHandlersRef.current();
 			}
 		};
-	}, [isAuthenticated, performAppCleanup]);
+	}, [isAuthenticated, performAppCleanup, revalidateSession]);
 
 	useEffect(() => {
 		if (!isAuthenticated || !user?.Id) {
@@ -1002,6 +1004,15 @@ const AppContent = (props) => {
 				serverUrl={serverUrl}
 			/>
 			<SeasonalTheme theme={settings.seasonalTheme} />
+			<NoConnection />
+			{connectionState !== 'connected' && isAuthenticated && (
+				<div className={css.connectionBanner}>
+					<span>{connectionState === 'reconnecting' ? 'Reconnecting to server...' : 'Lost connection to server'}</span>
+					{connectionState === 'disconnected' && (
+						<button className={css.retryButton} onClick={() => revalidateSession(true)}>Retry</button>
+					)}
+				</div>
+			)}
 		</div>
 	);
 };
