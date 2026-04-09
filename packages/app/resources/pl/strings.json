@@ -7,7 +7,6 @@
 	"Libraries": "Biblioteki",
 	"Settings": "Ustawienia",
 	"User": "Użytkownik",
-
 	"General": "Ogólne",
 	"App behavior, navigation, and home screen": "Zachowanie aplikacji, nawigacja i ekran główny",
 	"Playback": "Odtwarzanie",
@@ -18,35 +17,27 @@
 	"Moonfin plugin and integrations": "Wtyczka Moonfin i integracje",
 	"About": "Informacje",
 	"App info and device capabilities": "Informacje o aplikacji i możliwości urządzenia",
-
 	"Auto (No limit)": "Auto (bez limitu)",
-
 	"Movies & TV Shows": "Filmy i seriale",
 	"Movies Only": "Tylko filmy",
 	"TV Shows Only": "Tylko seriale",
-
 	"5 items": "5 elementów",
 	"10 items": "10 elementów",
 	"15 items": "15 elementów",
-
 	"Collections": "Kolekcje",
-
 	"Off": "Wyłączone",
 	"Light": "Lekkie",
 	"Medium": "Średnie",
 	"Strong": "Mocne",
 	"Heavy": "Silne",
-
 	"Small": "Małe",
 	"Large": "Duże",
 	"Extra Large": "Bardzo duże",
-
 	"Bottom": "Dół",
 	"Lower": "Niżej",
 	"Middle": "Środek",
 	"Higher": "Wyżej",
 	"Absolute": "Absolutne",
-
 	"White": "Białe",
 	"Yellow": "Żółte",
 	"Cyan": "Cyjanowe",
@@ -58,12 +49,10 @@
 	"Black": "Czarne",
 	"Blue": "Niebieskie",
 	"Navy": "Granatowe",
-
 	"5 seconds": "5 sekund",
 	"10 seconds": "10 sekund",
 	"20 seconds": "20 sekund",
 	"30 seconds": "30 sekund",
-
 	"Gray": "Szary",
 	"Dark Blue": "Ciemnoniebieski",
 	"Purple": "Fioletowy",
@@ -74,27 +63,21 @@
 	"Dark Green": "Ciemnozielony",
 	"Slate": "Łupkowy",
 	"Indigo": "Indygo",
-
 	"Library Backdrops": "Tła z biblioteki",
 	"Moonfin Logo": "Logo Moonfin",
-
 	"1 minute": "1 minuta",
 	"90 seconds": "90 sekund",
 	"2 minutes": "2 minuty",
 	"3 minutes": "3 minuty",
 	"5 minutes": "5 minut",
-
 	"12-Hour": "12-godzinny",
 	"24-Hour": "24-godzinny",
-
 	"Top Bar": "Górny pasek",
 	"Left Sidebar": "Lewy pasek boczny",
-
 	"Always": "Zawsze",
 	"Hide Unwatched Count": "Ukryj licznik nieobejrzanych",
 	"Episodes Only": "Tylko odcinki",
 	"Never": "Nigdy",
-
 	"Default": "Domyślny",
 	"Poster": "Plakat",
 	"Backdrop": "Tło",
@@ -102,31 +85,25 @@
 	"Thumb": "Miniatura",
 	"Vertical": "Pionowo",
 	"Horizontal": "Poziomo",
-
 	"Compact": "Kompaktowy",
 	"Slightly Small": "Nieco mały",
 	"Slightly Large": "Nieco duży",
 	"Huge": "Ogromny",
 	"Maximum": "Maksymalny",
-
 	"Orange": "Pomarańczowy",
 	"Pink": "Różowy",
-
 	"Extended": "Rozszerzony",
 	"Minimal": "Minimalny",
 	"Disabled": "Wyłączony",
-
 	"Ask to Skip": "Zapytaj o pominięcie",
 	"Auto Skip": "Automatycznie pomiń",
 	"Don't Skip": "Nie pomijaj",
-
 	"None": "Brak",
 	"Winter": "Zima",
 	"Spring": "Wiosna",
 	"Summer": "Lato",
 	"Fall": "Jesień",
 	"Halloween": "Halloween",
-
 	"Language": "Język",
 	"Restart the app to apply the new language": "Uruchom ponownie aplikację, aby zastosować nowy język",
 	"Clock Display": "Format zegara",
@@ -135,10 +112,8 @@
 	"Auto Login": "Automatyczne logowanie",
 	"Automatically sign in on app launch": "Automatycznie zaloguj się przy uruchomieniu aplikacji",
 	"Watched Indicators": "Wskaźniki obejrzanych",
-
 	"Unified Library Mode": "Tryb zunifikowanej biblioteki",
 	"Combine content from all servers into a single view": "Połącz zawartość ze wszystkich serwerów w jeden widok",
-
 	"Navigation Style": "Styl nawigacji",
 	"Show Shuffle Button": "Pokaż przycisk losowania",
 	"Show shuffle button in navigation bar": "Pokaż przycisk losowania na pasku nawigacji",
@@ -149,7 +124,6 @@
 	"Show favorites button in navigation bar": "Pokaż przycisk ulubionych na pasku nawigacji",
 	"Show Libraries in Toolbar": "Pokaż biblioteki na pasku narzędzi",
 	"Show library shortcuts in navigation bar": "Pokaż skróty do bibliotek na pasku nawigacji",
-
 	"Merge Continue Watching & Next Up": "Połącz Kontynuuj oglądanie i Następny",
 	"Combine into a single row": "Połącz w jeden wiersz",
 	"Use Series Thumbnails": "Użyj miniatur serialu",
@@ -160,7 +134,6 @@
 	"Customize which rows appear on home screen": "Dostosuj, które wiersze pojawiają się na ekranie głównym",
 	"Hide Libraries": "Ukryj biblioteki",
 	"Choose which libraries to hide (syncs across all clients)": "Wybierz biblioteki do ukrycia (synchronizuje się ze wszystkimi klientami)",
-
 	"Intro Action": "Akcja dla czołówki",
 	"Outro Action": "Akcja dla końcówki",
 	"Auto Play Next": "Automatycznie odtwarzaj następny",
@@ -175,7 +148,6 @@
 	"Request transcoded streams when available": "Żądaj strumieni transkodowanych, gdy są dostępne",
 	"Force Direct Play": "Wymuś bezpośrednie odtwarzanie",
 	"Skip codec checks and always attempt DirectPlay (debug)": "Pomiń sprawdzanie kodeków i zawsze próbuj DirectPlay (debugowanie)",
-
 	"Subtitle Size": "Rozmiar napisów",
 	"Subtitle Position": "Pozycja napisów",
 	"Absolute Position": "Pozycja absolutna",
@@ -188,12 +160,10 @@
 	"Background Opacity": "Przezroczystość tła",
 	"Direct Play PGS Subtitles": "Bezpośrednie odtwarzanie napisów PGS",
 	"Use client-side rendering for bitmap subtitles (PGS, DVB, DVD)": "Użyj renderowania po stronie klienta dla napisów bitmapowych (PGS, DVB, DVD)",
-
 	"Home Row Backdrops": "Tła wierszy ekranu głównego",
 	"Show background art when browsing rows on the home screen": "Pokaż grafikę tła podczas przeglądania wierszy na ekranie głównym",
 	"Home Backdrop Blur": "Rozmycie tła ekranu głównego",
 	"Details Backdrop Blur": "Rozmycie tła szczegółów",
-
 	"UI Scale": "Skala interfejsu",
 	"UI Opacity": "Przezroczystość interfejsu",
 	"User Avatar Opacity": "Przezroczystość awatara użytkownika",
@@ -201,7 +171,6 @@
 	"Focus Color": "Kolor zaznaczenia",
 	"Card Focus Zoom": "Powiększenie karty przy zaznaczeniu",
 	"Slightly enlarge cards when focused": "Nieznacznie powiększ karty po zaznaczeniu",
-
 	"Show Featured Bar": "Pokaż pasek polecanych",
 	"Display the featured media bar on home screen": "Wyświetlaj pasek polecanych mediów na ekranie głównym",
 	"Content Type": "Typ zawartości",
@@ -211,18 +180,15 @@
 	"Automatically play trailer previews in the featured media bar": "Automatycznie odtwarzaj podglądy zwiastunów na pasku polecanych",
 	"Mute Trailers": "Wycisz zwiastuny",
 	"Mute trailer previews in the featured media bar": "Wycisz podglądy zwiastunów na pasku polecanych",
-
 	"Next Up Behavior": "Zachowanie dla następnego",
 	"Countdown Timer": "Odliczanie",
 	"Instant": "Natychmiast",
-
 	"Seasonal Effect": "Efekt sezonowy",
 	"Theme Music": "Muzyka motywu",
 	"Play background music on detail pages": "Odtwarzaj muzykę w tle na stronach szczegółów",
 	"Theme Music Volume": "Głośność muzyki motywu",
 	"Theme Music on Home Rows": "Muzyka motywu na wierszach ekranu głównego",
 	"Play theme music when browsing home screen items": "Odtwarzaj muzykę motywu podczas przeglądania elementów ekranu głównego",
-
 	"Enable Screensaver": "Włącz wygaszacz ekranu",
 	"Reduce brightness after inactivity to prevent screen burn-in": "Zmniejsz jasność po bezczynności, aby zapobiec wypaleniu ekranu",
 	"Screensaver Type": "Typ wygaszacza ekranu",
@@ -232,7 +198,6 @@
 	"Age Rating Filter": "Filtr oceny wiekowej",
 	"Only show age-appropriate backdrops": "Pokazuj tylko tła odpowiednie wiekowo",
 	"Max Rating": "Maksymalna ocena",
-
 	"Enable Plugin": "Włącz wtyczkę",
 	"Connect for ratings, sync, and {seerrLabel} proxy": "Połącz dla ocen, synchronizacji i proxy {seerrLabel}",
 	"Username": "Nazwa użytkownika",
@@ -254,7 +219,6 @@
 	"Logging in via Moonfin plugin...": "Logowanie przez wtyczkę Moonfin...",
 	"Connected successfully!": "Połączono pomyślnie!",
 	"Login failed:": "Logowanie nie powiodło się:",
-
 	"Plugin Version": "Wersja wtyczki",
 	"Unknown": "Nieznane",
 	"Settings Sync": "Synchronizacja ustawień",
@@ -264,21 +228,17 @@
 	"Disabled by Admin": "Wyłączone przez administratora",
 	"Detected Variant": "Wykryty wariant",
 	"{seerrLabel} (Seerr v3+)": "{seerrLabel} (Seerr v3+)",
-
 	"Enable Ratings": "Włącz oceny",
 	"Show MDBList ratings on media details and featured bar": "Pokaż oceny MDBList w szczegółach mediów i pasku polecanych",
 	"Show Rating Labels": "Pokaż etykiety ocen",
 	"Display source names below rating scores": "Wyświetlaj nazwy źródeł pod wynikami ocen",
-
 	"Episode Ratings": "Oceny odcinków",
 	"Show TMDB ratings on individual episodes": "Pokaż oceny TMDB dla poszczególnych odcinków",
-
 	"Status": "Status",
 	"Connected via Moonfin": "Połączono przez Moonfin",
 	"Moonfin User": "Użytkownik Moonfin",
 	"Disconnect": "Rozłącz",
 	"{seerrLabel} connection is managed through the Moonfin plugin. Log in above if prompted.": "Połączenie {seerrLabel} jest zarządzane przez wtyczkę Moonfin. Zaloguj się powyżej, jeśli pojawi się monit.",
-
 	"App Version": "Wersja aplikacji",
 	"Platform": "Platforma",
 	"Server URL": "Adres serwera",
@@ -297,7 +257,6 @@
 	"Video Codecs": "Kodeki wideo",
 	"Audio Codecs": "Kodeki audio",
 	"Containers": "Kontenery",
-
 	"Application": "Aplikacja",
 	"Clock, auto login": "Zegar, automatyczne logowanie",
 	"Multi-Server": "Wiele serwerów",
@@ -337,18 +296,15 @@
 	"Capabilities": "Możliwości",
 	"Supported formats and codecs": "Obsługiwane formaty i kodeki",
 	"Version and platform": "Wersja i platforma",
-
 	"Enable/disable and reorder the rows that appear on your home screen.": "Włącz/wyłącz i zmień kolejność wierszy na ekranie głównym.",
 	"Reset to Default": "Przywróć domyślne",
 	"Save": "Zapisz",
-
 	"Hidden libraries are removed from all Jellyfin clients. This is a server-level setting.": "Ukryte biblioteki są usuwane ze wszystkich klientów Jellyfin. Jest to ustawienie na poziomie serwera.",
 	"Loading libraries...": "Ładowanie bibliotek...",
 	"Hidden": "Ukryta",
 	"Visible": "Widoczna",
 	"Cancel": "Anuluj",
 	"Saving...": "Zapisywanie...",
-
 	"Connect to Server": "Połącz z serwerem",
 	"Add New Server": "Dodaj nowy serwer",
 	"Server Address": "Adres serwera",
@@ -382,7 +338,6 @@
 	"Quick Connect is not available on this server. Use password login.": "Szybkie połączenie nie jest dostępne na tym serwerze. Użyj logowania hasłem.",
 	"Quick Connect failed. Try password login instead.": "Szybkie połączenie nie powiodło się. Spróbuj zalogować się hasłem.",
 	"Use Password Instead": "Użyj hasła zamiast tego",
-
 	"Continue Watching": "Kontynuuj oglądanie",
 	"My Media": "Moje media",
 	"Latest Media": "Najnowsze media",
@@ -391,13 +346,11 @@
 	"No content found": "Nie znaleziono treści",
 	"No description available.": "Brak opisu.",
 	"Navigate to an item to see details": "Przejdź do elementu, aby zobaczyć szczegóły",
-
 	"Media Info": "Informacje o mediach",
 	"No media info available": "Brak informacji o mediach",
 	"Close": "Zamknij",
 	"External": "Zewnętrzne",
 	"Embedded": "Wbudowane",
-
 	"Resume": "Wznów",
 	"Play": "Odtwórz",
 	"Read": "Czytaj",
@@ -413,38 +366,30 @@
 	"Favorite": "Dodaj do ulubionych",
 	"Series": "Serial",
 	"Add to Playlist": "Dodaj do playlisty",
-
 	"Director": "Reżyser",
 	"Writers": "Scenarzyści",
 	"Studio": "Studio",
-
 	"Born": "Urodzony",
 	"age": "wiek",
 	"Movies": "Filmy",
 	"TV Series": "Seriale",
-
 	"Episode": "Odcinek",
 	"Episodes": "Odcinki",
 	"Season": "Sezon",
 	"Seasons": "Sezony",
 	"Season {number} Episodes": "Sezon {number} — odcinki",
 	"Unwatched": "Nieobejrzane",
-
 	"Item": "Element",
 	"Items": "Elementy",
 	"◀ ▶ to re-order · DEL to remove": "◀ ▶ aby zmienić kolejność · DEL aby usunąć",
-
 	"Tracks": "Ścieżki",
 	"More Like This": "Więcej podobnych",
-
 	"Discography": "Dyskografia",
 	"Similar Artists": "Podobni artyści",
-
 	"Ends at {time}": "Kończy się o {time}",
 	"Next Up": "Następny",
 	"Items in Collection": "Elementy w kolekcji",
 	"Cast & Crew": "Obsada i ekipa",
-
 	"Select Version": "Wybierz wersję",
 	"Select Audio Track": "Wybierz ścieżkę audio",
 	"Select Subtitle": "Wybierz napisy",
@@ -454,10 +399,8 @@
 	"Press BACK to close": "Naciśnij WSTECZ, aby zamknąć",
 	"Searching...": "Szukanie...",
 	"No remote subtitles found": "Nie znaleziono zdalnych napisów",
-
 	"Loading trailer...": "Ładowanie zwiastuna...",
 	"Removed from playlist": "Usunięto z playlisty",
-
 	"Skip Intro": "Pomiń intro",
 	"Skip Credits": "Pomiń napisy końcowe",
 	"UP NEXT": "NASTĘPNY ODCINEK",
@@ -465,7 +408,6 @@
 	"Play Now": "Odtwórz teraz",
 	"Hide": "Ukryj",
 	"Go Back": "Wróć",
-
 	"Playback Error": "Błąd odtwarzania",
 	"Failed to load media": "Nie udało się załadować mediów",
 	"Playback failed.": "Odtwarzanie nie powiodło się.",
@@ -479,7 +421,6 @@
 	"Transcoding failed after retry. Try restarting the app.": "Transkodowanie nie powiodło się po ponownej próbie. Spróbuj ponownie uruchomić aplikację.",
 	"Failed to seek - please try again": "Przewijanie nie powiodło się – spróbuj ponownie",
 	"Playback failed. The file format may not be supported.": "Odtwarzanie nie powiodło się. Format pliku może nie być obsługiwany.",
-
 	"Subtitle Offset": "Przesunięcie napisów",
 	"Subtitle Appearance": "Wygląd napisów",
 	"Appearance": "Wygląd",
@@ -508,7 +449,6 @@
 	"Transcode Reason": "Powód transkodowania",
 	"Bit Depth": "Głębokość bitowa",
 	"Player": "Odtwarzacz",
-
 	"Size": "Rozmiar",
 	"Pause": "Pauza",
 	"Rewind": "Przewiń wstecz",
@@ -518,7 +458,6 @@
 	"Speed": "Prędkość",
 	"Quality": "Jakość",
 	"Info": "Informacje",
-
 	"Search movies, shows, music, and more...": "Szukaj filmów, seriali, muzyki i więcej...",
 	"Search for content": "Szukaj treści",
 	"Find movies, TV shows, music, and more": "Znajdź filmy, seriale, muzykę i więcej",
@@ -532,7 +471,6 @@
 	"Jellyseerr": "Jellyseerr",
 	"Person": "Osoba",
 	"Artist": "Artysta",
-
 	"{count} favorites sorted by {sortLabel}": "{count} ulubionych posortowanych według {sortLabel}",
 	"No favorites found": "Nie znaleziono ulubionych",
 	"Sort & Filter": "Sortuj i filtruj",
@@ -551,7 +489,6 @@
 	"Image size": "Rozmiar obrazu",
 	"Image type": "Typ obrazu",
 	"Grid direction": "Kierunek siatki",
-
 	"{count} genres sorted by {sortLabel}": "{count} gatunków posortowanych według {sortLabel}",
 	"{count} genres in '{libraryName}' sorted by {sortLabel}": "{count} gatunków w '{libraryName}' posortowanych według {sortLabel}",
 	"genres": "gatunki",
@@ -566,17 +503,14 @@
 	"All Libraries": "Wszystkie biblioteki",
 	"GENRES": "GATUNKI",
 	"Card size": "Rozmiar karty",
-
 	"No genre selected": "Nie wybrano gatunku",
 	"No items found": "Nie znaleziono elementów",
 	"Starting with \"{letter}\"": "Zaczynając od \"{letter}\"",
 	"Filter": "Filtr",
 	"Rating": "Ocena",
 	"Release Date": "Data premiery",
-
 	"Person not found": "Nie znaleziono osoby",
 	"Filmography": "Filmografia",
-
 	"No library selected": "Nie wybrano biblioteki",
 	"All items": "Wszystkie elementy",
 	"Favorites Only": "Tylko ulubione",
@@ -592,7 +526,6 @@
 	"Folder view": "Widok folderów",
 	"On": "Włączony",
 	"Album Artist": "Artysta albumu",
-
 	"Loading TV Guide...": "Ładowanie przewodnika TV...",
 	"Live TV Guide": "Przewodnik telewizji na żywo",
 	"◀ Previous Day": "◀ Poprzedni dzień",
@@ -615,7 +548,6 @@
 	"Duration:": "Czas trwania:",
 	"Delete": "Usuń",
 	"Cancel Recording": "Anuluj nagranie",
-
 	"My Requests": "Moje zamówienia",
 	"Trending Now": "Popularne teraz",
 	"Popular Movies": "Popularne filmy",
@@ -695,7 +627,6 @@
 	"movies": "filmy",
 	"TV shows": "seriale",
 	"No Radarr/Sonarr server configured for {mediaType} in Jellyseerr": "Brak skonfigurowanego serwera Radarr/Sonarr dla {mediaType} w Jellyseerr",
-
 	"Account": "Konto",
 	"Not logged in": "Nie zalogowano",
 	"Servers & Users": "Serwery i użytkownicy",
@@ -707,7 +638,6 @@
 	"Remove User": "Usuń użytkownika",
 	"You will need to sign in again to use this account.": "Aby używać tego konta, będziesz musiał zalogować się ponownie.",
 	"Are you sure you want to remove {username} from {serverName}?": "Czy na pewno chcesz usunąć {username} z {serverName}?",
-
 	"New Playlist": "Nowa playlista",
 	"Loading playlists…": "Ładowanie playlist…",
 	"Playlist name": "Nazwa playlisty",
@@ -719,18 +649,14 @@
 	"Adding…": "Dodawanie…",
 	"Added to playlist": "Dodano do playlisty",
 	"Created \"{name}\" and added item": "Utworzono \"{name}\" i dodano element",
-
 	"Exit Moonfin?": "Wyjść z Moonfin?",
 	"Are you sure you want to exit?": "Czy na pewno chcesz wyjść?",
 	"Exit": "Wyjdź",
-
 	"Update Available": "Dostępna aktualizacja",
 	"Current:": "Aktualnie:",
 	"OK": "OK",
-
 	"Navigate": "Nawigacja",
 	"Toggle info": "Przełącz info",
-
 	"Opening comic...": "Otwieranie komiksu...",
 	"Press Back to close": "Naciśnij Wstecz, aby zamknąć",
 	"No pages found": "Nie znaleziono stron",
@@ -744,7 +670,6 @@
 	"720p (4 Mbps)": "720p (4 Mb/s)",
 	"480p (2 Mbps)": "480p (2 Mb/s)",
 	"360p (1 Mbps)": "360p (1 Mb/s)",
-
 	"DECLINED": "ODRZUCONE",
 	"HD AVAILABLE • 4K DECLINED": "HD DOSTĘPNE • 4K ODRZUCONE",
 	"HD DECLINED • 4K AVAILABLE": "HD ODRZUCONE • 4K DOSTĘPNE",
@@ -770,13 +695,14 @@
 	"HD PENDING": "HD OCZEKUJĄCE",
 	"BLACKLISTED": "NA CZARNEJ LIŚCIE",
 	"NOT REQUESTED": "NIE ZAMÓWIONE",
-
 	"Cancel {quality} request for \"{title}\"?": "Anulować zamówienie {quality} dla \"{title}\"?",
 	"and": "i",
 	"Cancel {parts} requests for \"{title}\"?": "Anulować zamówienia {parts} dla \"{title}\"?",
-
 	"Failed to load details": "Nie udało się załadować szczegółów",
 	"Request failed": "Zamówienie nie powiodło się",
 	"Failed to cancel request": "Nie udało się anulować zamówienia",
-	"Failed to load requests": "Nie udało się załadować zamówień"
+	"Failed to load requests": "Nie udało się załadować zamówień",
+	"Back Close": "Wstecz Zamknij",
+	"OK Toggle info": "OK Przełącz info",
+	"◀ ▶ Navigate": "◀ ▶ Nawigacja"
 }
