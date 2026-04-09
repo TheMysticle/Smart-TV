@@ -219,6 +219,12 @@ export const api = {
 		return request(`/Genres?UserId=${currentUser}&SortBy=SortName&Recursive=true&IncludeItemTypes=Movie,Series${params}`);
 	},
 
+	getMusicGenres: (params = {}) => {
+		const merged = {UserId: currentUser, SortBy: 'SortName', SortOrder: 'Ascending', Recursive: 'true'};
+		Object.keys(params).forEach(function (k) { merged[k] = String(params[k]); });
+		return request(`/Genres?${buildQueryString(merged)}`);
+	},
+
 	getItemsByGenre: (genreId, libraryId, limit = 50) =>
 		request(`/Users/${currentUser}/Items?GenreIds=${genreId}&ParentId=${libraryId}&Limit=${limit}&Recursive=true&IncludeItemTypes=Movie,Series&Fields=PrimaryImageAspectRatio,ProductionYear`),
 
@@ -343,6 +349,9 @@ export const api = {
 
 	getAlbumTracks: (albumId) =>
 		request(`/Users/${currentUser}/Items?ParentId=${albumId}&IncludeItemTypes=Audio&SortBy=ParentIndexNumber,IndexNumber&SortOrder=Ascending&Fields=MediaSources,MediaStreams`),
+
+	getLyrics: (itemId) =>
+		request(`/Audio/${itemId}/Lyrics?UserId=${currentUser}`),
 
 	getArtistItems: (artistId, limit = 50) =>
 		request(`/Users/${currentUser}/Items?ArtistIds=${artistId}&IncludeItemTypes=Audio&Recursive=true&SortBy=Album,ParentIndexNumber,IndexNumber&SortOrder=Ascending&Limit=${limit}&Fields=PrimaryImageAspectRatio,ProductionYear,AlbumArtist`),
@@ -470,6 +479,12 @@ export const createApiForServer = (serverUrl, token, userId) => {
 			return serverRequest(`/Genres?UserId=${userId}&SortBy=SortName&Recursive=true&IncludeItemTypes=Movie,Series${params}`);
 		},
 
+		getMusicGenres: (params = {}) => {
+			const merged = {UserId: userId, SortBy: 'SortName', SortOrder: 'Ascending', Recursive: 'true'};
+			Object.keys(params).forEach(function (k) { merged[k] = String(params[k]); });
+			return serverRequest(`/Genres?${buildQueryString(merged)}`);
+		},
+
 		getResumeItems: () =>
 			serverRequest(`/Users/${userId}/Items/Resume?Limit=12&Recursive=true&Fields=PrimaryImageAspectRatio,Overview,BackdropImageTags,ParentBackdropImageTags,ParentBackdropItemId,ProviderIds&MediaTypes=Video&EnableTotalRecordCount=false&ExcludeItemTypes=Book`),
 
@@ -563,6 +578,9 @@ export const createApiForServer = (serverUrl, token, userId) => {
 
 		getAlbumTracks: (albumId) =>
 			serverRequest(`/Users/${userId}/Items?ParentId=${albumId}&IncludeItemTypes=Audio&SortBy=ParentIndexNumber,IndexNumber&SortOrder=Ascending&Fields=MediaSources,MediaStreams`),
+
+		getLyrics: (itemId) =>
+			serverRequest(`/Audio/${itemId}/Lyrics?UserId=${userId}`),
 
 		getArtistItems: (artistId, limit = 50) =>
 			serverRequest(`/Users/${userId}/Items?ArtistIds=${artistId}&IncludeItemTypes=Audio&Recursive=true&SortBy=Album,ParentIndexNumber,IndexNumber&SortOrder=Ascending&Limit=${limit}&Fields=PrimaryImageAspectRatio,ProductionYear,AlbumArtist`),

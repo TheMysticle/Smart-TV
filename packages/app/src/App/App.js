@@ -472,6 +472,13 @@ const AppContent = (props) => {
 			navigateTo(PANELS.LIBRARY);
 			return;
 		}
+		if (item.Type === 'Audio') {
+			setPlayingItem(item);
+			setPlaybackOptions(null);
+			setIsResume(false);
+			navigateTo(PANELS.PLAYER);
+			return;
+		}
 		if (panelIndex === PANELS.DETAILS && selectedItem) {
 			detailsItemStackRef.current.push(selectedItem);
 			setSelectedItem(item);
