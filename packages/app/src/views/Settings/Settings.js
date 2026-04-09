@@ -358,9 +358,6 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 	const [serverVersion, setServerVersion] = useState(null);
 	const [moonfinConnecting, setMoonfinConnecting] = useState(false);
 	const [moonfinStatus, setMoonfinStatus] = useState('');
-	const [moonfinLoginMode, setMoonfinLoginMode] = useState(false);
-	const [moonfinUsername, setMoonfinUsername] = useState('');
-	const [moonfinPassword, setMoonfinPassword] = useState('');
 	const [tempHomeRows, setTempHomeRows] = useState([]);
 	const [allLibraries, setAllLibraries] = useState([]);
 	const [hiddenLibraries, setHiddenLibraries] = useState([]);
@@ -452,10 +449,8 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 				const result = await jellyseerr.configureWithMoonfin(serverUrl, accessToken);
 				if (result.authenticated) {
 					setMoonfinStatus($L('Connected via Moonfin!'));
-					setMoonfinLoginMode(false);
 				} else {
 					setMoonfinStatus($L('Moonfin plugin found but no session. Please log in.'));
-					setMoonfinLoginMode(true);
 				}
 			} catch (err) {
 				setMoonfinStatus(`${$L('Moonfin connection failed:')} ${err.message}`);
@@ -465,40 +460,12 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 		} else {
 			jellyseerr.disable();
 			setMoonfinStatus('');
-			setMoonfinLoginMode(false);
-			setMoonfinUsername('');
-			setMoonfinPassword('');
 		}
 	}, [settings.useMoonfinPlugin, updateSetting, serverUrl, accessToken, jellyseerr]);
 
-	const handleMoonfinLogin = useCallback(async () => {
-		if (!moonfinUsername || !moonfinPassword) {
-			setMoonfinStatus($L('Please enter username and password'));
-			return;
-		}
-		setMoonfinConnecting(true);
-		setMoonfinStatus($L('Logging in via Moonfin plugin...'));
-		try {
-			await jellyseerr.loginWithMoonfin(moonfinUsername, moonfinPassword);
-			setMoonfinStatus($L('Connected successfully!'));
-			setMoonfinLoginMode(false);
-			setMoonfinUsername('');
-			setMoonfinPassword('');
-		} catch (err) {
-			setMoonfinStatus(`${$L('Login failed:')} ${err.message}`);
-		} finally {
-			setMoonfinConnecting(false);
-		}
-	}, [moonfinUsername, moonfinPassword, jellyseerr]);
-
-	const handleMoonfinUsernameChange = useCallback((e) => setMoonfinUsername(e.target.value), []);
-	const handleMoonfinPasswordChange = useCallback((e) => setMoonfinPassword(e.target.value), []);
 	const handleJellyseerrDisconnect = useCallback(() => {
 		jellyseerr.disable();
 		setMoonfinStatus('');
-		setMoonfinLoginMode(false);
-		setMoonfinUsername('');
-		setMoonfinPassword('');
 	}, [jellyseerr]);
 
 	const openHomeRows = useCallback(() => {
@@ -897,42 +864,6 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 				<div className={css.listItemTrailing}>{renderToggle(settings.useMoonfinPlugin)}</div>
 			</SpottableDiv>
 			{settings.useMoonfinPlugin && moonfinStatus && <div className={css.statusMessage}>{moonfinStatus}</div>}
-			{settings.useMoonfinPlugin && moonfinLoginMode && (
-				<>
-					<div className={css.inputGroup}>
-						<label>{$L('{seerrLabel} Username').replace('{seerrLabel}', seerrLabel)}</label>
-						<SpottableInput
-							type='text'
-							placeholder={$L('Enter {seerrLabel} username').replace('{seerrLabel}', seerrLabel)}
-							value={moonfinUsername}
-							onChange={handleMoonfinUsernameChange}
-							className={css.input}
-							spotlightId='moonfin-username'
-						/>
-					</div>
-					<div className={css.inputGroup}>
-						<label>{$L('{seerrLabel} Password').replace('{seerrLabel}', seerrLabel)}</label>
-						<SpottableInput
-							type='password'
-							placeholder={$L('Enter {seerrLabel} password').replace('{seerrLabel}', seerrLabel)}
-							value={moonfinPassword}
-							onChange={handleMoonfinPasswordChange}
-							className={css.input}
-							spotlightId='moonfin-password'
-						/>
-					</div>
-					<div className={css.actionBarInline}>
-						<SpottableButton
-							className={css.actionButton}
-							onClick={handleMoonfinLogin}
-							disabled={moonfinConnecting}
-							spotlightId='moonfin-login-submit'
-						>
-							{moonfinConnecting ? $L('Logging in...') : $L('Log In')}
-						</SpottableButton>
-					</div>
-				</>
-			)}
 			{!settings.useMoonfinPlugin && (
 				<div className={css.authHint}>
 					{$L('Enable the Moonfin plugin to access ratings, settings sync, and {seerrLabel} proxy features. The plugin must be installed on your Jellyfin server.').replace('{seerrLabel}', seerrLabel)}
