@@ -8,7 +8,7 @@ import {
 	avplayOpen, avplayPrepare, avplayPlay, avplayPause,
 	avplaySeek, avplayGetCurrentTime, avplayGetDuration, avplayGetState,
 	avplaySetListener, avplaySetSpeed, avplaySelectTrack, avplaySetSilentSubtitle,
-	avplayGetTracks, avplaySetDisplayMethod, setDisplayWindow, cleanupAVPlay
+	avplayGetTracks, avplaySetDisplayMethod, avplaySetStreamingProperty, setDisplayWindow, cleanupAVPlay
 } from '@moonfin/platform-tizen/video';
 import {useSettings} from '../../context/SettingsContext';
 import {useSyncPlay} from '../../context/SyncPlayContext';
@@ -72,6 +72,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [mediaSourceId, setMediaSourceId] = useState(null);
 	const [hasTriedTranscode, setHasTriedTranscode] = useState(false);
 	const [focusRow, setFocusRow] = useState('top');
+	const isLiveTV = item.Type === 'TvChannel';
 	const [isAudioMode, setIsAudioMode] = useState(false);
 	const [lyricsLines, setLyricsLines] = useState([]);
 	const [isLyricsLoading, setIsLyricsLoading] = useState(false);
@@ -137,7 +138,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 	const {topButtons, bottomButtons, favoriteButton} = usePlayerButtons({
 		isPaused, audioStreams, subtitleStreams, chapters,
-		nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack,
+		nextEpisode, isAudioMode, isLiveTV, hasNextTrack, hasPrevTrack,
 		shuffleMode, repeatMode, isFavorite
 	});
 
@@ -403,17 +404,19 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			avplayReadyRef.current = false;
 
 			try {
-				const savedPosition = item.UserData?.PlaybackPositionTicks || 0;
-				const startPosition = resume !== false ? savedPosition : 0;
+				const isLiveTV = item.Type === 'TvChannel';
+				const savedPosition = isLiveTV ? 0 : (item.UserData?.PlaybackPositionTicks || 0);
+				const startPosition = (!isLiveTV && resume !== false) ? savedPosition : 0;
 				const effectiveBitrate = selectedQuality || settings.maxBitrate || undefined;
 				const result = await playback.getPlaybackInfo(item.Id, {
 					startPositionTicks: startPosition,
 					maxBitrate: effectiveBitrate,
 					preferTranscode: settings.preferTranscode,
-					forceDirectPlay: settings.forceDirectPlay,
+					forceDirectPlay: isLiveTV ? false : settings.forceDirectPlay,
 					item: item,
 					mediaSourceId: initialMediaSourceId,
-					audioStreamIndex: initialAudioIndex != null ? initialAudioIndex : undefined
+					audioStreamIndex: initialAudioIndex != null ? initialAudioIndex : undefined,
+					isLiveTV
 				});
 
 				setPlayMethod(result.playMethod);
@@ -428,9 +431,12 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				setSubtitleStreams(result.subtitleStreams || []);
 
 				// Chapters are an Item property, not MediaSource - result.chapters may be empty
-				let chapterList = result.chapters || [];
-				if (chapterList.length === 0) {
-					chapterList = await playback.fetchItemChapters(item.Id, item);
+				let chapterList = [];
+				if (!isLiveTV) {
+					chapterList = result.chapters || [];
+					if (chapterList.length === 0) {
+						chapterList = await playback.fetchItemChapters(item.Id, item);
+					}
 				}
 				setChapters(chapterList);
 
@@ -531,7 +537,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				// Build title and subtitle
 				let displayTitle = item.Name;
 				let displaySubtitle = '';
-				if (item.SeriesName) {
+				if (isLiveTV) {
+					displayTitle = item.Name || 'Live TV';
+					displaySubtitle = item.ChannelNumber ? `Channel ${item.ChannelNumber}` : '';
+				} else if (item.SeriesName) {
 					displayTitle = item.SeriesName;
 					displaySubtitle = `S${item.ParentIndexNumber}E${item.IndexNumber} - ${item.Name}`;
 				} else if (result.isAudio) {
@@ -547,7 +556,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				// Audio mode: always show controls, skip video-only features
 				if (shouldUseAudioMode) {
 					setControlsVisible(true);
-				} else {
+				} else if (!isLiveTV) {
 					try {
 						const segments = await withTimeout(playback.getMediaSegments(item.Id), 4000);
 						setMediaSegments(segments);
@@ -573,6 +582,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				setDisplayWindow({x: 0, y: 0, width: 1920, height: 1080});
 				avplaySetDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
 
+				if (isLiveTV || result.url.includes('.m3u8')) {
+					avplaySetStreamingProperty('ADAPTIVE_INFO', 'FIXED_MAX_RESOLUTION=1920x1080');
+				}
+
 				avplaySetListener({
 					onbufferingstart: () => { setIsBuffering(true); },
 					onbufferingcomplete: () => { setIsBuffering(false); },
@@ -589,7 +602,15 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				ondrmevent: () => {}
 			});
 
-				await avplayPrepare();
+				const prepareTimeout = isLiveTV ? 30000 : 60000;
+				let prepareTimer;
+				await Promise.race([
+					avplayPrepare(),
+					new Promise((_, reject) => {
+						prepareTimer = setTimeout(() => reject(new Error('Stream preparation timed out')), prepareTimeout);
+					})
+				]);
+				clearTimeout(prepareTimer);
 				avplayReadyRef.current = true;
 
 				// Get duration from AVPlay (returns ms)
@@ -600,7 +621,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				}
 
 				// Seek to start position if resuming
-				if (startPosition > 0) {
+				if (!isLiveTV && startPosition > 0) {
 					const seekMs = Math.floor(startPosition / 10000);
 					await avplaySeek(seekMs);
 				}
@@ -688,7 +709,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				// Start time update polling
 				startTimeUpdatePolling();
 
-				console.log(`[Player] Loaded ${displayTitle} via ${result.playMethod} (AVPlay native)`);
+				console.log(`[Player] Loaded ${displayTitle} via ${result.playMethod} (AVPlay native)${isLiveTV ? ' [Live TV]' : ''}`);
 			} catch (err) {
 				console.error('[Player] Failed to load media:', err);
 				setError(err.message || $L('Failed to load media'));
@@ -1542,14 +1563,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			if (e.keyCode === KEYS.FAST_FORWARD) {
 				e.preventDefault();
 				e.stopPropagation();
-				handleForward();
+				if (!isLiveTV) handleForward();
 				showControls();
 				return;
 			}
 			if (e.keyCode === KEYS.REWIND) {
 				e.preventDefault();
 				e.stopPropagation();
-				handleRewind();
+				if (!isLiveTV) handleRewind();
 				showControls();
 				return;
 			}
@@ -1593,6 +1614,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
   			}
 				if (key === 'ArrowLeft' || e.keyCode === 37 || key === 'ArrowRight' || e.keyCode === 39) {
 					e.preventDefault();
+					if (isLiveTV) { showControls(); return; }
 					showControls();
 					setFocusRow('progress');
 					setIsSeeking(true);
@@ -1624,7 +1646,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				if (key === 'ArrowUp' || e.keyCode === 38) {
 					e.preventDefault();
 					setFocusRow(prev => {
-						if (prev === 'bottom') return 'progress';
+						if (prev === 'bottom') return isLiveTV ? 'top' : 'progress';
 						if (prev === 'progress') {
 							window.requestAnimationFrame(() => Spotlight.focus(isAudioMode ? 'favorite-btn' : 'play-pause-btn'));
 							return 'top';
@@ -1636,7 +1658,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				if (key === 'ArrowDown' || e.keyCode === 40) {
 					e.preventDefault();
 					setFocusRow(prev => {
-						if (prev === 'top') return 'progress';
+						if (prev === 'top') return isLiveTV ? (bottomButtons.length > 0 ? 'bottom' : 'top') : 'progress';
 						if (prev === 'progress') {
 							if (isAudioMode) {
 								window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
@@ -1838,6 +1860,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				controlsVisible={controlsVisible}
 				activeModal={activeModal}
 				isAudioMode={isAudioMode}
+				isLiveTV={isLiveTV}
 				focusRow={focusRow}
 				title={title}
 				subtitle={subtitle}

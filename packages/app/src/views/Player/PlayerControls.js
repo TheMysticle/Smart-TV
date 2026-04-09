@@ -31,7 +31,7 @@ import { useSettings } from '../../context/SettingsContext';
  */
 export const usePlayerButtons = ({
 	isPaused, audioStreams, subtitleStreams, chapters,
-	nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack,
+	nextEpisode, isAudioMode, isLiveTV, hasNextTrack, hasPrevTrack,
 	shuffleMode, repeatMode, isFavorite
 }) => {
 	const topButtons = useMemo(() => {
@@ -47,27 +47,28 @@ export const usePlayerButtons = ({
 		const buttons = [
 			{id: 'playPause', icon: isPaused ? <IconPlay /> : <IconPause />, label: isPaused ? $L('Play') : $L('Pause'), action: 'playPause'}
 		];
-		if (isAudioMode) {
-			buttons.unshift(
-				{id: 'previous', icon: <IconPrevious />, label: $L('Previous'), action: 'prevTrack', disabled: !hasPrevTrack}
-			);
-			buttons.push(
-				{id: 'next', icon: <IconNext />, label: $L('Next'), action: 'nextTrack', disabled: !hasNextTrack}
-			);
-		} else {
+		if (!isLiveTV) {
 			buttons.push(
 				{id: 'rewind', icon: <IconRewind />, label: $L('Rewind'), action: 'rewind'},
-				{id: 'forward', icon: <IconForward />, label: $L('Forward'), action: 'forward'},
-				{id: 'audio', icon: <IconAudio />, label: $L('Audio'), action: 'audio', disabled: audioStreams.length === 0},
-				{id: 'subtitle', icon: <IconSubtitle />, label: $L('Subtitles'), action: 'subtitle', disabled: subtitleStreams.length === 0}
+				{id: 'forward', icon: <IconForward />, label: $L('Forward'), action: 'forward'}
 			);
 		}
+		buttons.push(
+			{id: 'audio', icon: <IconAudio />, label: $L('Audio'), action: 'audio', disabled: audioStreams.length === 0},
+			{id: 'subtitle', icon: <IconSubtitle />, label: $L('Subtitles'), action: 'subtitle', disabled: subtitleStreams.length === 0}
+		);
 		return buttons;
-	}, [isPaused, audioStreams.length, subtitleStreams.length, isAudioMode, hasNextTrack, hasPrevTrack, shuffleMode, repeatMode]);
+	}, [isPaused, audioStreams.length, subtitleStreams.length, isAudioMode, isLiveTV, hasNextTrack, hasPrevTrack, shuffleMode, repeatMode]);
 
 	const bottomButtons = useMemo(() => {
 		if (isAudioMode) {
 			return [];
+		}
+		if (isLiveTV) {
+			return [
+				{id: 'quality', icon: <IconQuality />, label: $L('Quality'), action: 'quality'},
+				{id: 'info', icon: <IconInfo />, label: $L('Info'), action: 'info'}
+			];
 		}
 		return [
 			{id: 'chapters', icon: <IconChapters />, label: $L('Chapters'), action: 'chapter', disabled: chapters.length === 0},
@@ -77,7 +78,7 @@ export const usePlayerButtons = ({
 			{id: 'quality', icon: <IconQuality />, label: $L('Quality'), action: 'quality'},
 			{id: 'info', icon: <IconInfo />, label: $L('Info'), action: 'info'}
 		];
-	}, [chapters.length, nextEpisode, isAudioMode]);
+	}, [chapters.length, nextEpisode, isAudioMode, isLiveTV]);
 
 	const favoriteButton = useMemo(() => {
 		if (!isAudioMode) return null;
@@ -158,8 +159,7 @@ const PlayerControls = ({
 	// Visibility & layout
 	controlsVisible,
 	activeModal,
-	isAudioMode,
-	focusRow,
+	isAudioMode,	isLiveTV,	focusRow,
 	// Media info
 	title,
 	subtitle,
@@ -219,7 +219,7 @@ const PlayerControls = ({
 	return (
 		<>
 			{/* Skip Intro Button */}
-			{showSkipIntro && !isAudioMode && !activeModal && !controlsVisible && (
+			{showSkipIntro && !isAudioMode && !isLiveTV && !activeModal && !controlsVisible && (
 				<div className={css.skipOverlay}>
 					<SpottableButton className={css.skipButton} onClick={handleSkipIntro} spotlightId="skip-intro-btn">
 						{$L('Skip Intro')}
@@ -277,7 +277,8 @@ const PlayerControls = ({
 					</div>
 					)}
 
-					{/* Progress Bar */}
+					{/* Progress Bar (hidden for live TV) */}
+					{!isLiveTV && (
 					<div className={css.progressContainer}>
 						<div className={css.timeInfoTop}>
 							<span className={css.timeEnd}>{formatEndTime(duration - displayTime, settings.clockDisplay)}</span>
@@ -309,6 +310,7 @@ const PlayerControls = ({
 							</span>
 						</div>
 					</div>
+					)}
 
 					{/* Audio mode: Shuffle | Prev | Play/Pause | Next | Repeat below seekbar */}
 					{isAudioMode && (

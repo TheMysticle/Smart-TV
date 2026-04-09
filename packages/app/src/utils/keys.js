@@ -71,7 +71,9 @@ export const ESSENTIAL_KEY_NAMES = [
 	'ColorF2Yellow',
 	'ColorF3Blue',
 	'Info',
-	'Search'
+	'Search',
+	'ChannelUp',
+	'ChannelDown'
 ];
 
 export const registerKeys = (keyNames = ESSENTIAL_KEY_NAMES) => {

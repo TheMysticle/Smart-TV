@@ -118,6 +118,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const sourceTransitionRef = useRef(false);
 	const transcodeRetryCountRef = useRef(0);
 	const forceHlsJsRef = useRef(false);
+	const isLiveTV = item.Type === 'TvChannel';
 	const prevItemIdRef = useRef(null);
 	const hlsPlayerRef = useRef(null);
 	const pendingAudioRef = useRef(null);
@@ -168,7 +169,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 	const {topButtons, bottomButtons, favoriteButton} = usePlayerButtons({
 		isPaused, audioStreams, subtitleStreams, chapters,
-		nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack,
+		nextEpisode, isAudioMode, isLiveTV, hasNextTrack, hasPrevTrack,
 		shuffleMode, repeatMode, isFavorite
 	});
 
@@ -378,12 +379,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			await waitForDecoderRelease();
 
 			try {
-				const savedPosition = item.UserData?.PlaybackPositionTicks || 0;
-				const startPosition = resume !== false ? savedPosition : 0;
+				const isLiveTV = item.Type === 'TvChannel';
+				const savedPosition = isLiveTV ? 0 : (item.UserData?.PlaybackPositionTicks || 0);
+				const startPosition = (!isLiveTV && resume !== false) ? savedPosition : 0;
 				console.log('[Player] Start position:', {
 					resume,
 					savedPosition,
 					startPosition,
+					isLiveTV,
 					hasUserData: !!item.UserData
 				});
 				const result = await playback.getPlaybackInfo(item.Id, {
@@ -391,11 +394,12 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 					maxBitrate: selectedQuality || settings.maxBitrate,
 					enableDirectPlay: !settings.preferTranscode,
 					enableDirectStream: !settings.preferTranscode,
-					forceDirectPlay: settings.forceDirectPlay,
+					forceDirectPlay: isLiveTV ? false : settings.forceDirectPlay,
 					mediaSourceId: initialMediaSourceId,
 					audioStreamIndex: initialAudioIndex,
 					subtitleStreamIndex: initialSubtitleIndex,
-					item: item
+					item: item,
+					isLiveTV
 				});
 
 				setMediaUrl(result.url);
@@ -409,14 +413,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				seekingTranscodeRef.current = false;
 
 				// Defer seek until pipeline is running
-				if (result.playMethod !== 'Transcode' && startPosition > 0) {
+				if (!isLiveTV && result.playMethod !== 'Transcode' && startPosition > 0) {
 					pendingResumeTicksRef.current = startPosition;
 					console.log('[Player] Pending resume seek:', startPosition, 'ticks (' + (startPosition / 10000000) + 's)');
 				} else {
 					pendingResumeTicksRef.current = 0;
 				}
 
-				if (result.playMethod === 'Transcode' && startPosition > 0) {
+				if (!isLiveTV && result.playMethod === 'Transcode' && startPosition > 0) {
 					transcodeOffsetTicksRef.current = startPosition;
 					transcodeOffsetDetectedRef.current = false;
 				} else {
@@ -528,7 +532,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 				let displayTitle = item.Name;
 				let displaySubtitle = '';
-				if (item.SeriesName) {
+				if (isLiveTV) {
+					displayTitle = item.Name || 'Live TV';
+					displaySubtitle = item.ChannelNumber ? `Channel ${item.ChannelNumber}` : '';
+				} else if (item.SeriesName) {
 					displayTitle = item.SeriesName;
 					displaySubtitle = `S${item.ParentIndexNumber}E${item.IndexNumber} - ${item.Name}`;
 				} else if (result.isAudio) {
@@ -544,7 +551,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				// Audio mode: always show controls, skip video-only features
 				if (shouldUseAudioMode) {
 					setControlsVisible(true);
-				} else {
+				} else if (!isLiveTV) {
 					try {
 						const segments = await withTimeout(playback.getMediaSegments(item.Id), 4000);
 						setMediaSegments(segments);
@@ -564,7 +571,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 					}
 				}
 
-				console.log(`[Player] Loaded ${displayTitle} via ${result.playMethod}`);
+				console.log(`[Player] Loaded ${displayTitle} via ${result.playMethod}${isLiveTV ? ' [Live TV]' : ''}`);
 			} catch (err) {
 				console.error('[Player] Failed to load media:', err);
 				setError(err.message || $L('Failed to load media'));
@@ -1890,14 +1897,14 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			if (e.keyCode === 417) {
 				e.preventDefault();
 				e.stopPropagation();
-				handleForward();
+				if (!isLiveTV) handleForward();
 				showControls();
 				return;
 			}
 			if (e.keyCode === 412) {
 				e.preventDefault();
 				e.stopPropagation();
-				handleRewind();
+				if (!isLiveTV) handleRewind();
 				showControls();
 				return;
 			}
@@ -1938,6 +1945,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				}
 				if (key === 'ArrowLeft' || e.keyCode === 37 || key === 'ArrowRight' || e.keyCode === 39) {
 					e.preventDefault();
+					if (isLiveTV) { showControls(); return; }
 					showControls();
 					setFocusRow('progress');
 					setIsSeeking(true);
@@ -1960,8 +1968,8 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				if (key === 'ArrowUp' || e.keyCode === 38) {
 					e.preventDefault();
 					showControls();
-					setFocusRow(prev => {
-						if (prev === 'bottom') return 'progress';
+				setFocusRow(prev => {
+						if (prev === 'bottom') return isLiveTV ? 'top' : 'progress';
 						if (prev === 'progress') {
 							window.requestAnimationFrame(() => Spotlight.focus(isAudioMode ? 'favorite-btn' : 'play-pause-btn'));
 							return 'top';
@@ -1974,7 +1982,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 					e.preventDefault();
 					showControls();
 					setFocusRow(prev => {
-						if (prev === 'top') return 'progress';
+						if (prev === 'top') return isLiveTV ? (bottomButtons.length > 0 ? 'bottom' : 'top') : 'progress';
 						if (prev === 'progress') {
 							if (isAudioMode) {
 								window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));

@@ -153,6 +153,20 @@
 	left: 0;
 	z-index: 10;
 	box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+	cursor: pointer;
+	transition: background 0.15s ease;
+	outline: none;
+
+	&:hover {
+		background: lighten(@background-secondary, 8%);
+	}
+
+	&:focus {
+		background: @accent-color;
+		color: @text-primary;
+		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+		z-index: 11;
+	}
 }
 
 .channelNumber {

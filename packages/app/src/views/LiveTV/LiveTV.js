@@ -11,7 +11,9 @@ import css from './LiveTV.module.less';
 
 const SpottableDiv = Spottable('div');
 const SpottableButton = Spottable('button');
-const GuideControls = SpotlightContainerDecorator({enterTo: 'last-focused'}, 'div');
+const GuideControls = SpotlightContainerDecorator({enterTo: 'last-focused', restrict: 'self-first'}, 'div');
+const ProgramGridContainer = SpotlightContainerDecorator({enterTo: 'last-focused', restrict: 'self-first'}, 'div');
+const ChannelRowContainer = SpotlightContainerDecorator({enterTo: 'last-focused'}, 'div');
 const PopupContainer = SpotlightContainerDecorator({
 	enterTo: 'default-element',
 	preserveId: true
@@ -21,17 +23,24 @@ const HOURS_TO_DISPLAY = 6;
 const PIXELS_PER_HOUR = 600;
 const MINUTES_PER_PIXEL = 60 / PIXELS_PER_HOUR;
 const CHANNELS_PER_BATCH = 50;
+const GUIDE_CONTROL_IDS = ['prev-day', 'next-day', 'today', 'filter', 'recordings'];
 
 const ProgramCell = ({program, channel, style, isCurrent, onProgramClick}) => {
 	const handleClick = useCallback(() => {
 		onProgramClick(program, channel);
 	}, [program, channel, onProgramClick]);
 
+	const handleFocus = useCallback((e) => {
+		const el = e.currentTarget || e.target;
+		if (el) el.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
+	}, []);
+
 	return (
 		<SpottableDiv
 			className={`${css.programCell} ${isCurrent ? css.current : ''}`}
 			style={style}
 			onClick={handleClick}
+			onFocus={handleFocus}
 			data-program-id={program.Id}
 		>
 			<div className={css.programTime}>
@@ -57,7 +66,6 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 	const [selectedProgram, setSelectedProgram] = useState(null);
-	const [focusMode, setFocusMode] = useState('grid');
 	const [channelNumberBuffer, setChannelNumberBuffer] = useState('');
 
 	const guideContentRef = useRef(null);
@@ -156,6 +164,8 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 				const row = document.querySelector(`[data-channel-id="${channel.Id}"]`);
 				if (row) {
 					row.scrollIntoView({behavior: 'smooth', block: 'center'});
+					const spottable = row.querySelector('[tabindex]');
+					if (spottable) spottable.focus();
 				}
 			}
 			setChannelNumberBuffer('');
@@ -178,7 +188,6 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 		const handleKeyDown = (e) => {
 			const keyCode = e.keyCode;
 
-			// Block all input when program detail is shown
 			if (selectedProgram) return;
 
 			if (keyCode >= KEYS.NUM_0 && keyCode <= KEYS.NUM_9) {
@@ -187,37 +196,24 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 				return;
 			}
 
-			if (keyCode === KEYS.UP) {
-				const focused = Spotlight.getCurrent();
-				if (focused && (focused.id === 'prev-day' || focused.id === 'next-day' || focused.id === 'today' || focused.id === 'filter' || focused.id === 'recordings')) {
-					e.preventDefault();
-					Spotlight.focus('navbar');
-					return;
-				}
+			const focused = Spotlight.getCurrent();
+			const focusedId = focused?.id || '';
 
-				const guideContent = guideContentRef.current;
-				if (guideContent && guideContent.scrollTop < 50) {
-					const programCell = focused?.closest('[data-program-id]');
-					if (programCell) {
-						e.preventDefault();
-						Spotlight.focus('livetv-guide');
-						return;
-					}
-				}
+			if (keyCode === KEYS.UP && GUIDE_CONTROL_IDS.includes(focusedId)) {
+				e.preventDefault();
+				Spotlight.focus('navbar');
+				return;
 			}
 
-			if (focusMode === 'controls') {
-				if (keyCode === KEYS.DOWN) {
-					e.preventDefault();
-					setFocusMode('grid');
-					Spotlight.focus('program-grid');
-				}
+			if (keyCode === KEYS.DOWN && GUIDE_CONTROL_IDS.includes(focusedId)) {
+				e.preventDefault();
+				Spotlight.focus('program-grid');
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [selectedProgram, focusMode, handleChannelNumber]);
+	}, [selectedProgram, handleChannelNumber]);
 
 	const handleScroll = useCallback(() => {
 		const guideContent = guideContentRef.current;
@@ -417,20 +413,24 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 						</div>
 					</div>
 
-					<div
+					<ProgramGridContainer
 						className={css.guideContent}
 						ref={guideContentRef}
 						onScroll={handleScroll}
-						data-spotlight-container=""
-						data-spotlight-id="program-grid"
+						spotlightId="program-grid"
 					>
 						{filteredChannels.map(channel => (
-							<div
+							<ChannelRowContainer
 								key={channel.Id}
 								className={css.channelRow}
 								data-channel-id={channel.Id}
+								spotlightId={`ch-row-${channel.Id}`}
 							>
-								<div className={css.channelInfo}>
+								<SpottableDiv
+									className={css.channelInfo}
+									onClick={() => onPlayChannel?.(channel)}
+									data-channel-id={channel.Id}
+								>
 									<div className={css.channelNumber}>{channel.ChannelNumber}</div>
 									<div className={css.channelName}>{channel.Name}</div>
 									{channel.ImageTags?.Primary && (
@@ -440,7 +440,7 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 											alt=""
 										/>
 									)}
-								</div>
+								</SpottableDiv>
 								<div
 									className={css.programsContainer}
 									style={{width: `${HOURS_TO_DISPLAY * PIXELS_PER_HOUR}px`}}
@@ -469,7 +469,7 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 										);
 									})}
 								</div>
-							</div>
+							</ChannelRowContainer>
 						))}
 
 						{filteredChannels.length === 0 && (
@@ -477,7 +477,7 @@ const LiveTV = ({onPlayChannel, onRecordings, backHandlerRef}) => {
 								{showFavoritesOnly ? $L('No favorite channels') : $L('No channels available')}
 							</div>
 						)}
-					</div>
+					</ProgramGridContainer>
 				</div>
 			</div>
 

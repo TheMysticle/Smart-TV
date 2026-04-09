@@ -507,6 +507,16 @@ export const avplaySelectTrack = (type, index) => {
 	}
 };
 
+export const avplaySetStreamingProperty = (property, value) => {
+	if (!isAVPlayAvailable) return;
+	try {
+		webapis.avplay.setStreamingProperty(property, value);
+		console.log(`[tizenVideo] Set streaming property ${property}: ${value}`);
+	} catch (e) {
+		console.warn(`[tizenVideo] Failed to set streaming property ${property}:`, e.message);
+	}
+};
+
 export const avplaySetSilentSubtitle = (silent) => {
 	if (!isAVPlayAvailable) return;
 	try {
@@ -678,6 +688,7 @@ export default {
 	avplaySetDrm,
 	avplaySelectTrack,
 	avplaySetSilentSubtitle,
+	avplaySetStreamingProperty,
 	avplayGetTracks,
 	avplaySetDisplayMethod,
 	cleanupAVPlay

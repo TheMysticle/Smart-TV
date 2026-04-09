@@ -284,13 +284,16 @@ export const getPlaybackInfo = async (itemId, options = {}) => {
 	const api = options.item ? getApiForItem(options.item) : jellyfinApi.api;
 	const creds = options.item ? getServerCredentials(options.item) : null;
 
+	const isLiveTV = options.isLiveTV || options.item?.Type === 'TvChannel';
+
 	// maxBitrate: user-set value (>0), or auto-detect from device capabilities
 	const maxBitrate = options.maxBitrate > 0 ? options.maxBitrate : getAutoMaxBitrate(capabilities);
 
-	const requestedStartTime = options.startPositionTicks || 0;
+	const requestedStartTime = isLiveTV ? 0 : (options.startPositionTicks || 0);
 	const subtitleStreamIndex = options.subtitleStreamIndex != null ? options.subtitleStreamIndex : -1;
 	console.log('[playback] getPlaybackInfo called:', {
 		itemId,
+		isLiveTV,
 		startPositionTicks: requestedStartTime,
 		maxBitrate,
 		subtitleStreamIndex,
@@ -331,6 +334,65 @@ export const getPlaybackInfo = async (itemId, options = {}) => {
 			.filter(s => s.Type === 'Subtitle')
 			.map(s => ({idx: s.Index, codec: s.Codec, isDefault: s.IsDefault, isExternal: s.IsExternal, deliveryMethod: s.DeliveryMethod}))
 	});
+
+	// Live TV: skip VOD media source selection and codec negotiation
+	if (isLiveTV) {
+		const mediaSource = firstSource;
+		const playMethod = mediaSource.TranscodingUrl
+			? PlayMethod.Transcode
+			: (mediaSource.SupportsDirectPlay ? PlayMethod.DirectPlay : PlayMethod.DirectStream);
+		const url = buildPlaybackUrl(itemId, mediaSource, playbackInfo.PlaySessionId, playMethod, creds, false);
+		const audioStreams = extractAudioStreams(mediaSource);
+		const subtitleStreams = extractSubtitleStreams(mediaSource);
+
+		currentSession = {
+			itemId,
+			playSessionId: playbackInfo.PlaySessionId,
+			mediaSourceId: mediaSource.Id,
+			mediaSource,
+			playMethod,
+			startPositionTicks: 0,
+			capabilities,
+			audioStreamIndex: mediaSource.DefaultAudioStreamIndex,
+			subtitleStreamIndex,
+			maxBitrate: options.maxBitrate,
+			serverCredentials: creds
+		};
+
+		console.log(`[playback] Live TV: ${itemId} via ${playMethod}`);
+
+		let mimeType;
+		if (playMethod === PlayMethod.Transcode) {
+			if (url.includes('/master.m3u8') || url.includes('TranscodingProtocol=hls')) {
+				mimeType = 'application/x-mpegURL';
+			} else if (url.includes('.ts') || mediaSource.TranscodingContainer === 'ts') {
+				mimeType = 'video/mp2t';
+			} else {
+				mimeType = 'video/mp4';
+			}
+		} else {
+			mimeType = getMimeType(mediaSource.Container);
+		}
+
+		return {
+			url,
+			playSessionId: playbackInfo.PlaySessionId,
+			mediaSourceId: mediaSource.Id,
+			mediaSource,
+			playMethod,
+			mimeType,
+			isAudio: false,
+			isLiveTV: true,
+			runTimeTicks: 0,
+			audioStreams,
+			subtitleStreams,
+			chapters: [],
+			defaultAudioStreamIndex: mediaSource.DefaultAudioStreamIndex,
+			selectedAudioStreamIndex: mediaSource.DefaultAudioStreamIndex,
+			defaultSubtitleStreamIndex: mediaSource.DefaultSubtitleStreamIndex,
+			startPositionTicks: 0
+		};
+	}
 
 	let mediaSource = selectMediaSource(playbackInfo.MediaSources, capabilities, options);
 
