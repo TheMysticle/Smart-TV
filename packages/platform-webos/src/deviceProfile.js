@@ -253,7 +253,7 @@ const buildVideoRangeTypes = (caps) => {
 	}
 
 	if (caps.hdr10) {
-		rangeTypes.push('HDR10', 'HDR10Plus');
+		rangeTypes.push('HDR10');
 
 		if (isWebOsWithoutDV) {
 			rangeTypes.push('DOVIWithHDR10', 'DOVIWithEL', 'DOVIInvalid');
@@ -269,8 +269,8 @@ const buildVideoRangeTypes = (caps) => {
 	}
 
 	if (caps.dolbyVision) {
-		rangeTypes.push('DOVI', 'DOVIWithHDR10', 'DOVIWithHLG', 'DOVIWithSDR');
-		rangeTypes.push('DOVIWithEL', 'DOVIInvalid');
+		rangeTypes.push('DOVI', 'DOVIWithHDR10', 'DOVIWithHLG', 'DOVIWithSDR', 'DOVIWithHDR10Plus');
+		rangeTypes.push('DOVIWithEL', 'DOVIWithELHDR10Plus', 'DOVIInvalid');
 	}
 
 	return rangeTypes.join('|');
