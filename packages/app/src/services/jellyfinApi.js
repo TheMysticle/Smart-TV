@@ -286,6 +286,9 @@ export const api = {
 	getSpecialFeatures: (itemId) =>
 		request(`/Users/${currentUser}/Items/${itemId}/SpecialFeatures`),
 
+	getAncestors: (itemId) =>
+		request(`/Items/${itemId}/Ancestors?UserId=${currentUser}`),
+
 	getThemeSongs: (itemId, inheritFromParent = true) =>
 		request(`/Items/${itemId}/ThemeSongs?UserId=${currentUser}&InheritFromParent=${inheritFromParent}`),
 
@@ -632,6 +635,12 @@ export const createApiForServer = (serverUrl, token, userId) => {
 			serverRequest(`/Playlists/${playlistId}/Items?EntryIds=${entryIds.join(',')}`, {
 				method: 'DELETE'
 			}),
+
+		getSpecialFeatures: (itemId) =>
+			serverRequest(`/Users/${userId}/Items/${itemId}/SpecialFeatures`),
+
+		getAncestors: (itemId) =>
+			serverRequest(`/Items/${itemId}/Ancestors?UserId=${userId}`),
 
 		getThemeSongs: (itemId, inheritFromParent = true) =>
 			serverRequest(`/Items/${itemId}/ThemeSongs?UserId=${userId}&InheritFromParent=${inheritFromParent}`),

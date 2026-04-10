@@ -151,6 +151,8 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 	const [cast, setCast] = useState([]);
 	const [nextUp, setNextUp] = useState([]);
 	const [collectionItems, setCollectionItems] = useState([]);
+	const [parentCollection, setParentCollection] = useState([]);
+	const [parentCollectionName, setParentCollectionName] = useState('');
 	const [albumTracks, setAlbumTracks] = useState([]);
 	const [artistAlbums, setArtistAlbums] = useState([]);
 	const [playlistItems, setPlaylistItems] = useState([]);
@@ -183,6 +185,8 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 			setCast([]);
 			setNextUp([]);
 			setCollectionItems([]);
+			setParentCollection([]);
+			setParentCollectionName('');
 			setAlbumTracks([]);
 			setArtistAlbums([]);
 			setPlaylistItems([]);
@@ -301,6 +305,48 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 						const filtered = (extrasData || []).filter(e => e.Id !== itemId);
 						setExtras(tagWithServerInfo(filtered));
 					} catch { /* Extras not available */ }
+				}
+
+				if (data.Type === 'Movie' || data.Type === 'Video') {
+					try {
+						let boxSet = null;
+
+						const ancestors = await effectiveApi.getAncestors(itemId);
+						boxSet = (ancestors || []).find(a => a.Type === 'BoxSet') || null;
+
+						if (!boxSet) {
+							const boxSets = await effectiveApi.getItems({
+								IncludeItemTypes: 'BoxSet',
+								Recursive: true,
+								Limit: 200,
+								SortBy: 'SortName',
+								Fields: 'BasicSyncInfo'
+							});
+							const allBoxSets = boxSets.Items || [];
+							for (let i = 0; i < allBoxSets.length && !boxSet; i += 5) {
+								const batch = allBoxSets.slice(i, i + 5);
+								const results = await Promise.all(batch.map(async (bs) => {
+									const children = await effectiveApi.getItems({
+										ParentId: bs.Id,
+										Fields: 'BasicSyncInfo'
+									});
+									return (children.Items || []).some(c => c.Id === itemId) ? bs : null;
+								}));
+								boxSet = results.find(r => r != null) || null;
+							}
+						}
+
+						if (boxSet) {
+							setParentCollectionName(boxSet.Name || $L('Collection'));
+							const colData = await effectiveApi.getItems({
+								ParentId: boxSet.Id,
+								SortBy: 'PremiereDate,SortName',
+								SortOrder: 'Ascending',
+								Fields: 'PrimaryImageAspectRatio,ProductionYear'
+							});
+							setParentCollection(tagWithServerInfo(colData.Items || []));
+						}
+					} catch { /* ignore */ }
 				}
 
 				if (data.Type === 'Person') {
@@ -2162,6 +2208,25 @@ const handleSectionKeyDown = useCallback((ev) => {
 											<span className={css.castName}>{person.Name}</span>
 											<span className={css.castRole}>{person.Role || person.Type}</span>
 										</SpottableDiv>
+									))}
+								</div>
+							</RowContainer>
+						)}
+
+						{/* Parent Collection */}
+						{parentCollection.length > 0 && (
+							<RowContainer className={css.section}>
+								<div className={css.sectionHeader}>
+									<h3 className={css.sectionTitle}>{parentCollectionName}</h3>
+								</div>
+								<div className={css.sectionScroll} onFocus={handleScrollerFocus}>
+									{parentCollection.map(colItem => (
+										<MediaCard
+											key={colItem.Id}
+											item={colItem}
+											serverUrl={effectiveServerUrl}
+											onSelect={onSelectItem}
+										/>
 									))}
 								</div>
 							</RowContainer>
