@@ -147,6 +147,7 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 	const [seasons, setSeasons] = useState([]);
 	const [episodes, setEpisodes] = useState([]);
 	const [similar, setSimilar] = useState([]);
+	const [extras, setExtras] = useState([]);
 	const [cast, setCast] = useState([]);
 	const [nextUp, setNextUp] = useState([]);
 	const [collectionItems, setCollectionItems] = useState([]);
@@ -178,6 +179,7 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 			setSeasons([]);
 			setEpisodes([]);
 			setSimilar([]);
+			setExtras([]);
 			setCast([]);
 			setNextUp([]);
 			setCollectionItems([]);
@@ -291,6 +293,14 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 						const similarData = await effectiveApi.getSimilar(itemId);
 						setSimilar(tagWithServerInfo(similarData.Items || []));
 					} catch { /* Similar items not available */ }
+				}
+
+				if (data.Type === 'Movie' || data.Type === 'Episode' || data.Type === 'Video') {
+					try {
+						const extrasData = await effectiveApi.getSpecialFeatures(itemId);
+						const filtered = (extrasData || []).filter(e => e.Id !== itemId);
+						setExtras(tagWithServerInfo(filtered));
+					} catch { /* Extras not available */ }
 				}
 
 				if (data.Type === 'Person') {
@@ -625,6 +635,12 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 		const startTicks = Number(ev.currentTarget.dataset.startTicks);
 		onPlay?.(item, false, {startPositionTicks: startTicks});
 	}, [item, onPlay]);
+
+	const handleExtraSelect = useCallback((ev) => {
+		const extraId = ev.currentTarget.dataset.extraId;
+		const extra = extras.find(e => e.Id === extraId);
+		if (extra) onPlay?.(extra, false, {});
+	}, [extras, onPlay]);
 
 	const handleTrackPlay = useCallback((ev) => {
 		const trackId = ev.currentTarget.dataset.trackId;
@@ -2073,6 +2089,46 @@ const handleSectionKeyDown = useCallback((ev) => {
 												<div className={css.chapterInfo}>
 													<span className={css.chapterName}>{chapter.Name}</span>
 													<span className={css.chapterTime}>{formatTime(chapter.StartPositionTicks / 10000000)}</span>
+												</div>
+											</SpottableDiv>
+										);
+									})}
+								</div>
+							</RowContainer>
+						)}
+
+						{/* Extras */}
+						{extras.length > 0 && (
+							<RowContainer className={css.section}>
+								<div className={css.sectionHeader}>
+									<h3 className={css.sectionTitle}>{$L('Extras')}</h3>
+								</div>
+								<div className={css.sectionScroll} onFocus={handleScrollerFocus}>
+									{extras.map(extra => {
+										const extraThumbUrl = extra.ImageTags?.Primary
+											? getImageUrl(effectiveServerUrl, extra.Id, 'Primary', {maxWidth: 400, quality: 80})
+											: null;
+										const extraDuration = extra.RunTimeTicks ? formatDuration(extra.RunTimeTicks) : '';
+
+										return (
+											<SpottableDiv
+												key={extra.Id}
+												className={css.extraCard}
+												data-extra-id={extra.Id}
+												onClick={handleExtraSelect}
+											>
+												<div className={css.extraThumb}>
+													{extraThumbUrl ? (
+														<img src={extraThumbUrl} alt="" />
+													) : (
+														<div className={css.extraThumbPlaceholder}>
+															<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+														</div>
+													)}
+												</div>
+												<div className={css.extraInfo}>
+													<span className={css.extraName}>{extra.Name}</span>
+													{extraDuration && <span className={css.extraDuration}>{extraDuration}</span>}
 												</div>
 											</SpottableDiv>
 										);
