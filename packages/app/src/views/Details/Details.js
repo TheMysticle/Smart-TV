@@ -48,9 +48,9 @@ const PosterBadges = ({userData}) => (
 	</>
 );
 
-const getMediaBadges = (item) => {
+const getMediaBadges = (item, versionIndex = 0) => {
 	const badges = [];
-	const mediaSource = item.MediaSources?.[0];
+	const mediaSource = item.MediaSources?.[versionIndex] || item.MediaSources?.[0];
 	const streams = mediaSource?.MediaStreams || [];
 	const video = streams.find(s => s.Type === 'Video');
 	const audio = streams.find(s => s.Type === 'Audio');
@@ -1018,7 +1018,7 @@ const handleSectionKeyDown = useCallback((ev) => {
 		}
 	})();
 	const officialRating = item.OfficialRating || '';
-	const badges = getMediaBadges(item);
+	const badges = getMediaBadges(item, selectedVersionIndex);
 	const seasonCount = item.ChildCount || seasons.length || 0;
 
 	// Media source info
@@ -2198,6 +2198,9 @@ const handleSectionKeyDown = useCallback((ev) => {
 							{item.MediaSources.map((source, i) => {
 								const video = source.MediaStreams?.find(s => s.Type === 'Video');
 								const resLabel = video?.Width >= 3800 ? '4K' : video?.Width >= 1900 ? '1080p' : video?.Width >= 1260 ? '720p' : video?.Width ? `${video.Width}p` : '';
+								const bitrate = source.Bitrate ? `${(source.Bitrate / 1000000).toFixed(1)} Mbps` : '';
+								const container = source.Container?.toUpperCase();
+								const detail = [resLabel, container, bitrate].filter(Boolean).join(' · ');
 								return (
 									<SpottableButton
 										key={source.Id}
@@ -2207,7 +2210,7 @@ const handleSectionKeyDown = useCallback((ev) => {
 										onClick={handleSelectVersion}
 									>
 										<span className={css.trackName}>{source.Name || `${$L('Version')} ${i + 1}`}</span>
-										{resLabel && <span className={css.trackInfo}>{resLabel}</span>}
+										{detail && <span className={css.trackInfo}>{detail}</span>}
 									</SpottableButton>
 								);
 							})}
