@@ -9,6 +9,7 @@ import {useAuth} from '../../context/AuthContext';
 import {useSettings} from '../../context/SettingsContext';
 import * as jellyfinApi from '../../services/jellyfinApi';
 import MediaRow from '../../components/MediaRow';
+import MediaCard from '../../components/MediaCard';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import RatingsRow from '../../components/RatingsRow';
 import {formatDuration, getImageUrl, getBackdropId, getLogoUrl} from '../../utils/helpers';
@@ -2112,13 +2113,21 @@ const handleSectionKeyDown = useCallback((ev) => {
 
 						{/* More Like This */}
 						{similar.length > 0 && (
-							<MediaRow
-								title={$L('More Like This')}
-								items={similar}
-								serverUrl={effectiveServerUrl}
-								onSelectItem={onSelectItem}
-								className={css.inlineRow}
-							/>
+							<RowContainer className={css.section}>
+								<div className={css.sectionHeader}>
+									<h3 className={css.sectionTitle}>{$L('More Like This')}</h3>
+								</div>
+								<div className={css.sectionScroll} onFocus={handleScrollerFocus}>
+									{similar.map(simItem => (
+										<MediaCard
+											key={simItem.Id}
+											item={simItem}
+											serverUrl={effectiveServerUrl}
+											onSelect={onSelectItem}
+										/>
+									))}
+								</div>
+							</RowContainer>
 						)}
 					</div>
 				</div>
