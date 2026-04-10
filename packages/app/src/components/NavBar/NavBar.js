@@ -196,6 +196,9 @@ const NavBar = ({
 				'jellyseerr-browse-grid',
 				'action-buttons',
 				'details-primary-btn',
+				'details-favorite-btn',
+				'person-overview',
+				'person-favorite-btn',
 				'search-input',
 				'livetv-guide'
 			];
