@@ -113,6 +113,7 @@ const AppContent = (props) => {
 	const [selectedGenre, setSelectedGenre] = useState(null);
 	const [genreFilter, setGenreFilter] = useState(null);
 	const [playingItem, setPlayingItem] = useState(null);
+	const [isPlayerPaused, setIsPlayerPaused] = useState(false);
 	const [panelHistory, setPanelHistory] = useState([]);
 	const [jellyseerrItem, setJellyseerrItem] = useState(null);
 	const [jellyseerrBrowse, setJellyseerrBrowse] = useState(null);
@@ -194,7 +195,7 @@ const AppContent = (props) => {
 	const screensaverActive = isAuthenticated &&
 		settings.screensaverEnabled &&
 		panelIndex !== PANELS.LOGIN &&
-		panelIndex !== PANELS.PLAYER;
+		(panelIndex !== PANELS.PLAYER || isPlayerPaused);
 	const {isInactive: showScreensaver, dismiss: dismissScreensaver} = useInactivityTimer(
 		settings.screensaverTimeout || 90,
 		screensaverActive
@@ -556,6 +557,7 @@ const AppContent = (props) => {
 	}, []);
 
 	const handlePlayerEnd = useCallback(() => {
+		setIsPlayerPaused(false);
 		setPlayingItem(null);
 		handleBack();
 	}, [handleBack]);
@@ -843,6 +845,7 @@ const AppContent = (props) => {
 								onEnded={handlePlayerEnd}
 								onBack={handlePlayerEnd}
 								onPlayNext={handlePlayNext}
+								onPausedChange={setIsPlayerPaused}
 							/>
 						)}
 					</Panel>

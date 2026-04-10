@@ -37,7 +37,7 @@ import css from './TizenPlayer.module.less';
  * playback. AVPlay renders on a platform multimedia layer BEHIND the web engine;
  * the web layer must be transparent in the video area for the content to show through.
  */
-const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
+const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist, onPausedChange}) => {
 	const {settings} = useSettings();
 	const {isInGroup, lastCommand} = useSyncPlay();
 	const syncPlayCommandRef = useRef(false);
@@ -386,6 +386,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			}
 		};
 	}, [isPaused]);
+
+	useEffect(() => {
+		onPausedChange?.(isPaused);
+	}, [isPaused, onPausedChange]);
 
 	// Handle playback health issues
 	const handleUnhealthy = useCallback(async () => {

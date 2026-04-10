@@ -37,7 +37,7 @@ import {
 
 import css from './WebOSPlayer.module.less';
 
-const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist}) => {
+const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, onEnded, onBack, onPlayNext, audioPlaylist, onPausedChange}) => {
 	const {settings} = useSettings();
 	const {isInGroup, lastCommand} = useSyncPlay();
 	const syncPlayCommandRef = useRef(false);
@@ -253,6 +253,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			}
 		};
 	}, [isPaused]);
+
+	useEffect(() => {
+		onPausedChange?.(isPaused);
+	}, [isPaused, onPausedChange]);
 
 	// Handle webOS app visibility and relaunch events to properly pause/cleanup video
 	useEffect(() => {
