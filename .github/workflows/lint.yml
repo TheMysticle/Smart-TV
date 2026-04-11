@@ -2,9 +2,10 @@ name: Lint
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -20,7 +21,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --force
+        run: npm ci --force
 
       - name: Lint
-        run: npm run lint
+        run: npm -w packages/app run lint

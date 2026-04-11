@@ -165,28 +165,44 @@ const AppContent = (props) => {
 
 	useEffect(() => {
 		const scale = settings.uiScale || 1.0;
-		if (scale === 1.0) return;
-
+		if (typeof document === 'undefined' || typeof window === 'undefined') return;
 		const html = document.documentElement;
-		let scaled = 0;
-		let unscaled = 0;
+		const previousInlineFontSize = html.style.fontSize || '';
+
+		if (scale === 1.0) {
+			if (previousInlineFontSize) {
+				html.style.fontSize = previousInlineFontSize;
+			} else {
+				html.style.removeProperty('font-size');
+			}
+			return;
+		}
+
+		const computed = window.getComputedStyle(html).fontSize;
+		const basePx = Number.parseFloat(computed);
+		const safeBasePx = Number.isFinite(basePx) && basePx > 0 ? basePx : 24;
+		const targetPx = Math.round(safeBasePx * scale * 10) / 10;
 
 		const applyScale = () => {
-			const current = parseFloat(html.style.fontSize) || 24;
-			if (current === scaled) return;
-			unscaled = current;
-			scaled = Math.round(current * scale * 10) / 10;
-			html.style.fontSize = scaled + 'px';
+			const current = Number.parseFloat(html.style.fontSize);
+			if (Number.isFinite(current) && Math.abs(current - targetPx) < 0.1) return;
+			html.style.fontSize = `${targetPx}px`;
 		};
 
 		applyScale();
 
-		const observer = new window.MutationObserver(applyScale);
-		observer.observe(html, {attributes: true, attributeFilter: ['style']});
+		const observer = new window.MutationObserver(() => applyScale());
+		observer.observe(html, {attributes: true, attributeFilter: ['style', 'class']});
 
+		window.addEventListener('resize', applyScale);
 		return () => {
 			observer.disconnect();
-			if (unscaled) html.style.fontSize = unscaled + 'px';
+			window.removeEventListener('resize', applyScale);
+			if (previousInlineFontSize) {
+				html.style.fontSize = previousInlineFontSize;
+			} else {
+				html.style.removeProperty('font-size');
+			}
 		};
 	}, [settings.uiScale]);
 

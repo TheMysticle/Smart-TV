@@ -30,6 +30,37 @@ import {
 
 import css from './TizenPlayer.module.less';
 
+const getTizenFullscreenRect = () => {
+	if (typeof window === 'undefined') {
+		return {x: 0, y: 0, width: 1920, height: 1080};
+	}
+
+	const cssWidth = Math.max(1, Math.round(window.innerWidth || 1920));
+	const cssHeight = Math.max(1, Math.round(window.innerHeight || 1080));
+	const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+	const physicalWidth = Math.round(cssWidth * dpr);
+	const physicalHeight = Math.round(cssHeight * dpr);
+
+	const screenWidth = Math.round(window.screen?.width || physicalWidth || 1920);
+	const screenHeight = Math.round(window.screen?.height || physicalHeight || 1080);
+
+	return {
+		x: 0,
+		y: 0,
+		// Prefer panel resolution when available to avoid cropped/zoomed AVPlay output
+		width: Math.max(screenWidth, physicalWidth),
+		height: Math.max(screenHeight, physicalHeight)
+	};
+};
+
+const getRootFontSizePx = () => {
+	if (typeof window === 'undefined' || typeof document === 'undefined') return 24;
+	const computed = window.getComputedStyle(document.documentElement).fontSize;
+	const parsed = parseFloat(computed);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
+};
+
 /**
  * AVPlay-based Player component for Samsung Tizen.
  *
@@ -123,6 +154,29 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const pgsParserRef = useRef(null);
 	const pgsCanvasRef = useRef(null);
 	const assRendererRef = useRef(null);
+	const rootFontSizePxRef = useRef(null);
+	const prevInlineRootFontSizeRef = useRef('');
+
+	const applyDisplayWindow = useCallback(() => {
+		const rect = getTizenFullscreenRect();
+		setDisplayWindow(rect);
+		avplaySetDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+	}, []);
+
+	const enforceRootFontSize = useCallback(() => {
+		if (typeof document === 'undefined') return;
+		const html = document.documentElement;
+		if (!html) return;
+
+		const target = rootFontSizePxRef.current;
+		if (!target) return;
+
+		const current = getRootFontSizePx();
+		if (Math.abs(current - target) > 0.25) {
+			html.style.fontSize = `${target}px`;
+			console.warn('[Player] Corrected unexpected UI zoom:', current, '->', target);
+		}
+	}, []);
 
 	// Shared handler for AVPlay's onsubtitlechange callback
 	// setSilentSubtitle(true) hides native render and fires this with embedded subtitle text
@@ -259,8 +313,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		avplayOpen(url);
 
 		// Set display to full screen - AVPlay renders on platform layer behind web
-		setDisplayWindow({x: 0, y: 0, width: 1920, height: 1080});
-		avplaySetDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+		applyDisplayWindow();
 
 		// Set AVPlay event listener
 		avplaySetListener({
@@ -301,7 +354,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 		// Start time update polling
 		startTimeUpdatePolling();
-	}, [startTimeUpdatePolling, stopTimeUpdatePolling, handleSubtitleChange]);
+	}, [startTimeUpdatePolling, stopTimeUpdatePolling, handleSubtitleChange, applyDisplayWindow]);
 
 	// ==============================
 	// Initialization
@@ -627,8 +680,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 				// === Start AVPlay ===
 				avplayOpen(result.url);
-				setDisplayWindow({x: 0, y: 0, width: 1920, height: 1080});
-				avplaySetDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+				applyDisplayWindow();
 
 				if (isLiveTV || result.url.includes('.m3u8')) {
 					avplaySetStreamingProperty('ADAPTIVE_INFO', 'FIXED_MAX_RESOLUTION=1920x1080');
@@ -804,7 +856,52 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			pendingSeekMsRef.current = null;
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro]);
+	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, applyDisplayWindow]);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return () => {};
+
+		const handleResize = () => {
+			if (!avplayReadyRef.current) return;
+			applyDisplayWindow();
+			enforceRootFontSize();
+		};
+
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
+	}, [applyDisplayWindow, enforceRootFontSize]);
+
+	// Guard against random WebKit/Tizen page zoom side-effects while in player.
+	// We lock the root font-size to the value at player entry and restore on exit.
+	useEffect(() => {
+		if (typeof window === 'undefined' || typeof document === 'undefined') return () => {};
+
+		const html = document.documentElement;
+		if (!html) return () => {};
+
+		const baselinePx = getRootFontSizePx();
+		rootFontSizePxRef.current = baselinePx;
+		prevInlineRootFontSizeRef.current = html.style.fontSize || '';
+		html.style.fontSize = `${baselinePx}px`;
+
+		const observer = new window.MutationObserver(() => {
+			enforceRootFontSize();
+		});
+		observer.observe(html, {attributes: true, attributeFilter: ['style', 'class']});
+
+		window.addEventListener('resize', enforceRootFontSize);
+
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('resize', enforceRootFontSize);
+			if (prevInlineRootFontSizeRef.current) {
+				html.style.fontSize = prevInlineRootFontSizeRef.current;
+			} else {
+				html.style.removeProperty('font-size');
+			}
+			rootFontSizePxRef.current = null;
+		};
+	}, [enforceRootFontSize]);
 
 	// ==============================
 	// Controls Auto-hide

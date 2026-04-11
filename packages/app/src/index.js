@@ -10,6 +10,23 @@ import App from './App';
 import {isTizen} from './platform';
 import {registerKeys, ESSENTIAL_KEY_NAMES} from './utils/keys';
 
+const enforceTizenViewport = () => {
+	if (typeof document === 'undefined' || !isTizen()) return;
+
+	let viewportMeta = document.querySelector('meta[name="viewport"]');
+	if (!viewportMeta) {
+		viewportMeta = document.createElement('meta');
+		viewportMeta.setAttribute('name', 'viewport');
+		document.head.appendChild(viewportMeta);
+	}
+
+	// Prevent browser-level page zoom shifts on some Tizen WebKit builds.
+	viewportMeta.setAttribute(
+		'content',
+		'width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover'
+	);
+};
+
 // Polyfill Element.prototype.scrollTo for older webOS/Tizen browsers
 if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
 	Element.prototype.scrollTo = function (options) {
@@ -69,6 +86,7 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
 })();
 
 if (isTizen()) {
+	enforceTizenViewport();
 	registerKeys(ESSENTIAL_KEY_NAMES);
 }
 
