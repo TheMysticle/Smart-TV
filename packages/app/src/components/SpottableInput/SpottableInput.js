@@ -63,8 +63,13 @@ const SpottableInput = ({
 		if (isInputActive && (code === 38 || code === 40)) {
 			e.preventDefault();
 			e.stopPropagation();
+			const direction = code === 40 ? 'down' : 'up';
+			const id = spotlightId || dataSpotlightId;
 			deactivateInput();
-			setTimeout(() => Spotlight.move(code === 40 ? 'down' : 'up'), 0);
+			if (id) {
+				Spotlight.focus(`[data-spotlight-id="${id}"]`);
+			}
+			setTimeout(() => Spotlight.move(direction), 0);
 			return;
 		}
 
