@@ -110,9 +110,10 @@ Download the latest release from the [Releases page](https://github.com/Moonfin-
 
 | Platform | File | Supported Devices |
 |---|---|---|
-| **Tizen** | `.wgt` | Samsung Smart TVs (2016+, Tizen 2.4+) |
-| **Tizen Legacy** | `.wgt` | Samsung Smart TVs (2015-2016, Tizen 2.4) |
-| **webOS** | `.ipk` | LG Smart TVs (2016+, webOS 3.0+) |
+| **Tizen Regular** | `Moonfin_Tizen_Regular_*.wgt` | Samsung Smart TVs (2017+, square icon) |
+| **Tizen Oblong** | `Moonfin_Tizen_Oblong_*.wgt` | Samsung Smart TVs (2017+, oblong icon) |
+| **Tizen Legacy** | `Moonfin_Tizen_Legacy_*.wgt` | Samsung Smart TVs (2016, Tizen 2.4) |
+| **webOS** | `Moonfin_webOS_*.ipk` | LG Smart TVs (2016+, webOS 3.0+) |
 
 ### Sideloading — Samsung (Tizen)
 
@@ -155,11 +156,13 @@ Seerr/Jellyseerr integration uses the **Moonfin Jellyfin Plugin** to proxy reque
 # Install dependencies
 npm install
 
-# Build for Samsung (creates .wgt)
-npm run build:tizen
+# Build for Samsung — all variants (Regular, Oblong, Legacy) in one command
+npm run build:tizen:all
 
-# Build for Samsung legacy (Tizen 2.4, creates .wgt)
-npm run build:tizen:legacy
+# Build for Samsung — individual variants
+npm run build:tizen         # Regular
+npm run build:tizen:oblong  # Oblong (512x423 launcher icon)
+npm run build:tizen:legacy  # Legacy (Tizen 2.4, no Smart Hub Preview)
 
 # Build for LG (creates .ipk)
 npm run build:webos
@@ -172,8 +175,8 @@ npm run dev:webos
 ```
 
 Build outputs:
-- Tizen: `Moonfin-v2.3.0.wgt` in the project root
-- webOS: `org.moonfin.webos_2.3.0_all.ipk` in `packages/build-webos/build/`
+- Tizen: `Moonfin_Tizen_<Regular|Oblong|Legacy>_<version>.wgt` in the project root
+- webOS: `Moonfin_webOS_<version>.ipk` in the project root
 
 ---
 
