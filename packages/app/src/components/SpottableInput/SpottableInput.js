@@ -1,5 +1,6 @@
 import {useCallback, useRef, useState, useEffect} from 'react';
 import Spottable from '@enact/spotlight/Spottable';
+import Spotlight from '@enact/spotlight';
 import {Pause} from '@enact/spotlight/Pause';
 
 import css from './SpottableInput.module.less';
@@ -56,6 +57,14 @@ const SpottableInput = ({
 			e.preventDefault();
 			e.stopPropagation();
 			deactivateInput();
+			return;
+		}
+
+		if (isInputActive && (code === 38 || code === 40)) {
+			e.preventDefault();
+			e.stopPropagation();
+			deactivateInput();
+			setTimeout(() => Spotlight.move(code === 40 ? 'down' : 'up'), 0);
 			return;
 		}
 
