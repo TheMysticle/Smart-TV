@@ -13,7 +13,6 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import {KEYS} from '../../utils/keys';
 import css from './JellyseerrDetails.module.less';
 
-
 const safeFocus = (spotlightId) => {
 	try {
 		return Spotlight.focus(spotlightId);

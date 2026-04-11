@@ -175,3 +175,35 @@ export const buildDisplayRatings = (ratings, serverUrl) => {
 
 	return result;
 };
+
+const tmdbSeasonCache = {};
+const TMDB_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const fetchTmdbSeasonRatings = async (serverUrl, tmdbId, season, options = {}) => {
+	if (!tmdbId || season == null) return null;
+	const cacheKey = `${tmdbId}:${season}`;
+	const cached = tmdbSeasonCache[cacheKey];
+	if (cached && (Date.now() - cached.fetchedAt) < TMDB_CACHE_TTL_MS) {
+		return cached.data;
+	}
+	const baseUrl = serverUrl || getServerUrl();
+	if (!baseUrl) return null;
+	try {
+		const url = `${baseUrl}/Moonfin/Tmdb/SeasonRatings?tmdbId=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(season)}`;
+		const fetchOptions = {
+			headers: {'Authorization': getAuthHeader()}
+		};
+		if (options.signal) fetchOptions.signal = options.signal;
+		const response = await fetch(url, fetchOptions);
+		if (!response.ok) return null;
+		const data = await response.json();
+		if (data?.success) {
+			tmdbSeasonCache[cacheKey] = {data, fetchedAt: Date.now()};
+			return data;
+		}
+		return null;
+	} catch {
+		return null;
+	}
+};
+

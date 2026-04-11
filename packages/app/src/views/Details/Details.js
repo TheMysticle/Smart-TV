@@ -19,6 +19,7 @@ import {formatTime} from '../Player/PlayerConstants';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import DeleteItemDialog from '../../components/DeleteItemDialog';
 import {toSubtitleLanguage, mapRemoteSubtitleOptions} from '../Player/remoteSubtitleUtils';
+import {getTmdbId, fetchTmdbSeasonRatings} from '../../services/mdblistApi';
 
 import css from './Details.module.less';
 
@@ -169,6 +170,7 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 	const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [toastMessage, setToastMessage] = useState(null);
+	const [episodeRatings, setEpisodeRatings] = useState({});
 
 	// Refs
 	const pageScrollerRef = useRef(null);
@@ -180,6 +182,7 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 			setIsLoading(true);
 			setSeasons([]);
 			setEpisodes([]);
+			setEpisodeRatings({});
 			setSimilar([]);
 			setExtras([]);
 			setCast([]);
@@ -363,6 +366,27 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 		};
 		loadItem();
 	}, [effectiveApi, itemId, tagWithServerInfo]);
+
+	useEffect(() => {
+		if (!item || !episodes.length) return;
+		if (!settings.useMoonfinPlugin || !settings.tmdbEpisodeRatingsEnabled) return;
+		if (item.Type !== 'Season' && item.Type !== 'Episode') return;
+
+		const tmdbId = getTmdbId(item);
+		const seasonNumber = item.Type === 'Season' ? item.IndexNumber : item.ParentIndexNumber;
+		if (!tmdbId || seasonNumber == null) return;
+
+		let cancelled = false;
+		fetchTmdbSeasonRatings(effectiveServerUrl, tmdbId, seasonNumber).then(data => {
+			if (cancelled || !data?.episodes) return;
+			const ratingsMap = {};
+			for (const ep of data.episodes) {
+				ratingsMap[ep.episodeNumber] = ep.voteAverage;
+			}
+			setEpisodeRatings(ratingsMap);
+		});
+		return () => { cancelled = true; };
+	}, [item, episodes.length, settings.useMoonfinPlugin, settings.tmdbEpisodeRatingsEnabled, effectiveServerUrl]);
 
 	// Auto-focus the primary button when content loads
 	useEffect(() => {
@@ -1541,6 +1565,12 @@ const handleSectionKeyDown = useCallback((ev) => {
 												<span className={css.seasonEpNumber}>{$L('Episode')} {ep.IndexNumber || '?'}</span>
 												<span className={css.seasonEpMeta}>
 													{epRuntime && <span>{epRuntime}</span>}
+													{episodeRatings[ep.IndexNumber] != null && (
+														<span className={css.tmdbBadge}>
+															<svg className={css.tmdbIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+															{episodeRatings[ep.IndexNumber].toFixed(1)}
+														</span>
+													)}
 												</span>
 											</div>
 											<span className={css.seasonEpTitle}>{ep.Name}</span>
@@ -2124,6 +2154,12 @@ const handleSectionKeyDown = useCallback((ev) => {
 													<span className={css.episodeEpNumber}>E{ep.IndexNumber || '?'}</span>
 													<span className={css.episodeEpTitle}>{ep.Name}</span>
 													{epRuntime && <span className={css.episodeEpRuntime}>{epRuntime}</span>}
+													{episodeRatings[ep.IndexNumber] != null && (
+														<span className={css.tmdbBadge}>
+															<svg className={css.tmdbIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+															{episodeRatings[ep.IndexNumber].toFixed(1)}
+														</span>
+													)}
 												</div>
 											</SpottableDiv>
 										);

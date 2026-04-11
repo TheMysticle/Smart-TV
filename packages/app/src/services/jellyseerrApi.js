@@ -7,7 +7,6 @@ let moonfinMode = false;
 let jellyfinServerUrl = null;
 let jellyfinAccessToken = null;
 
-
 // webOS 4 and legacy Tizen builds (<=3.0) can fail HTTPS validation for image.tmdb.org,
 // so use HTTP on those devices.
 const shouldUseHttp = isWebOS() || isLegacyTizen();
@@ -387,6 +386,30 @@ throw error;
 return true;
 };
 
+export const getMoonfinMediaBar = async (serverUrl, token, profile = 'tv') => {
+	const sUrl = serverUrl || jellyfinServerUrl;
+	const sToken = token || jellyfinAccessToken;
+	if (!sUrl || !sToken) return null;
+
+	const url = `${sUrl}/Moonfin/MediaBar?profile=${encodeURIComponent(profile)}`;
+	const result = await fetchRequest({
+		url,
+		method: 'GET',
+		headers: {
+			'Accept': 'application/json',
+			'Authorization': `MediaBrowser Token="${sToken}"`
+		},
+		timeout: 15000
+	});
+
+	if (!result.success || result.status >= 400) return null;
+	try {
+		return JSON.parse(result.body);
+	} catch {
+		return null;
+	}
+};
+
 const request = async (endpoint, options = {}) => {
 return moonfinRequest(endpoint, options);
 };
@@ -653,6 +676,11 @@ export const getImageUrl = (path, size = 'w500') => {
 if (!path) return null;
 const proto = shouldUseHttp ? 'http' : 'https';
 const normalizedPath = String(path).trim();
+
+// Already a full TMDB URL - fix the protocol
+if (normalizedPath.startsWith('http://image.tmdb.org') || normalizedPath.startsWith('https://image.tmdb.org')) {
+return normalizedPath.replace(/^https?/, proto);
+}
 
 if (normalizedPath.startsWith('/t/p/')) {
 return `${proto}://image.tmdb.org${normalizedPath}`;

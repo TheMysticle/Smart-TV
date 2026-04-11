@@ -91,7 +91,9 @@ const defaultSettings = {
 	uiScale: 1.0,
 	enablePgsRendering: true,
 	showSyncPlayButton: true,
-	stereoUpmixEnabled: false
+	stereoUpmixEnabled: false,
+	blockedRatings: [],
+	jellyseerrRows: null
 };
 
 export {DEFAULT_HOME_ROWS};
@@ -145,7 +147,7 @@ const VALUE_CONVERSIONS = {
 				.map(r => TV_TO_SERVER_ROW[r.id] || r.id);
 		},
 		fromServer: serverIds => {
-			if (!Array.isArray(serverIds)) return undefined;
+			if (!Array.isArray(serverIds) || serverIds.length === 0) return undefined;
 			const rows = [];
 			serverIds.forEach((sid, i) => {
 				const tvId = SERVER_TO_TV_ROW[sid] || sid;
@@ -176,6 +178,8 @@ const SYNCABLE_KEYS = [
 	'homeRows',
 	'showSyncPlayButton',
 	'uiLanguage',
+	'blockedRatings',
+	'jellyseerrRows',
 ];
 
 const profileToLocal = (serverProfile) => {
