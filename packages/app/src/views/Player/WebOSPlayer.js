@@ -681,6 +681,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			transcodeOffsetDetectedRef.current = false;
 
 			if (hlsPlayerRef.current) {
+				hlsPlayerRef.current.stopLoad();
 				hlsPlayerRef.current.loadSource(newUrl);
 			} else if (video) {
 				video.src = newUrl;
@@ -700,14 +701,8 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		} catch (err) {
 			console.error('[Player] seekInTranscode failed:', err);
 			setError($L('Failed to seek - please try again'));
-		} finally {
 			sourceTransitionRef.current = false;
 			seekingTranscodeRef.current = false;
-
-			if (lastSeekTargetRef.current !== null && lastSeekTargetRef.current !== seekPositionTicks) {
-				console.log('[Player] seekInTranscode: target changed during seek, re-seeking to', lastSeekTargetRef.current / 10000000, 's');
-				setTimeout(() => seekInTranscode(lastSeekTargetRef.current), 100);
-			}
 		}
 	}, [mimeType]);
 
@@ -1132,12 +1127,15 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			if (playMethod === 'Transcode' && !transcodeOffsetDetectedRef.current && transcodeOffsetTicksRef.current > 0) {
 				if (rawTime > 1) {
 					transcodeOffsetDetectedRef.current = true;
-					const expectedSec = transcodeOffsetTicksRef.current / 10000000;
-					if (rawTime > expectedSec * 0.5) {
-						transcodeOffsetTicksRef.current = 0;
-						console.log('[Player] Transcode timestamps: absolute (no offset needed)');
-					} else {
-						console.log('[Player] Transcode timestamps: relative, applying offset:', expectedSec, 's');
+					console.log('[Player] Transcode seek offset: applying', transcodeOffsetTicksRef.current / 10000000, 's (raw:', rawTime, 's)');
+
+					const pendingTicks = lastSeekTargetRef.current;
+					sourceTransitionRef.current = false;
+					seekingTranscodeRef.current = false;
+
+					if (pendingTicks !== null && pendingTicks !== transcodeOffsetTicksRef.current) {
+						console.log('[Player] seekInTranscode: target changed during load, re-seeking to', pendingTicks / 10000000, 's');
+						setTimeout(() => seekInTranscode(pendingTicks), 100);
 					}
 				} else {
 					positionRef.current = transcodeOffsetTicksRef.current;
@@ -1169,7 +1167,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 			checkSegments(ticks);
 		}
-	}, [playMethod, checkSegments, subtitleTrackEvents, subtitleOffset]);
+	}, [playMethod, checkSegments, subtitleTrackEvents, subtitleOffset, seekInTranscode]);
 
 	const handleWaiting = useCallback(() => {
 		setIsBuffering(true);
@@ -1180,7 +1178,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 	const handlePlaying = useCallback(() => {
 		setIsBuffering(false);
-		if (!seekDebounceTimerRef.current) {
+		if (!seekDebounceTimerRef.current && !seekingTranscodeRef.current) {
 			lastSeekTargetRef.current = null;
 		}
 	}, []);
