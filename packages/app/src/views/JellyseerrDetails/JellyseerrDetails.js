@@ -7,10 +7,12 @@ import Popup from '@enact/sandstone/Popup';
 import Button from '@enact/sandstone/Button';
 import $L from '@enact/i18n/$L';
 import jellyseerrApi, {canRequestMovies, canRequestTv, canRequest4kMovies, canRequest4kTv, hasAdvancedRequestPermission} from '../../services/jellyseerrApi';
+import {isLegacyTizen} from '../../platform';
 import {useJellyseerr} from '../../context/JellyseerrContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import {KEYS} from '../../utils/keys';
 import css from './JellyseerrDetails.module.less';
+
 
 const safeFocus = (spotlightId) => {
 	try {
@@ -671,6 +673,8 @@ const CancelRequestPopup = memo(({open, pendingRequests, title, onConfirm, onClo
 		</Popup>
 	);
 });
+
+const supportsExternalTrailerSearch = !isLegacyTizen();
 
 const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onPlayInMoonfin, onSelectPerson, onSelectKeyword, onBack, backHandlerRef}) => {
 	const {isAuthenticated, user: contextUser} = useJellyseerr();
@@ -1349,16 +1353,18 @@ const JellyseerrDetails = ({mediaType, mediaId, onClose, onSelectItem, onPlayInM
 							)}
 
 							{/* Watch Trailer Button */}
-							<div className={css.btnWrapper}>
-								<SpottableDiv className={css.btnAction} onClick={handleTrailer}>
-									<span className={css.btnIcon}>
-										<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-											<path d="M160-120v-720h80v80h80v-80h320v80h80v-80h80v720h-80v-80h-80v80H320v-80h-80v80h-80Zm80-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm400 320h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80ZM400-200h160v-560H400v560Zm0-560h160-160Z"/>
-										</svg>
-									</span>
-								</SpottableDiv>
-								<span className={css.btnLabel}>{$L('Watch Trailer')}</span>
-							</div>
+							{supportsExternalTrailerSearch && (
+								<div className={css.btnWrapper}>
+									<SpottableDiv className={css.btnAction} onClick={handleTrailer}>
+										<span className={css.btnIcon}>
+											<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+												<path d="M160-120v-720h80v80h80v-80h320v80h80v-80h80v720h-80v-80h-80v80H320v-80h-80v80h-80Zm80-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Zm400 320h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80ZM400-200h160v-560H400v560Zm0-560h160-160Z"/>
+											</svg>
+										</span>
+									</SpottableDiv>
+									<span className={css.btnLabel}>{$L('Watch Trailer')}</span>
+								</div>
+							)}
 
 							{/* Play in Moonfin Button (if available) */}
 							{isAvailable && (
