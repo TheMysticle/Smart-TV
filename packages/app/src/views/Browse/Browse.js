@@ -205,6 +205,58 @@ const Browse = ({
 		return null;
 	}, [api, serverUrl, accessToken, unifiedMode, getItemServerUrl]);
 
+	const refreshVolatileData = useCallback(async () => {
+		try {
+			let resumeItems, nextUp;
+
+			if (unifiedMode) {
+				[resumeItems, nextUp] = await Promise.all([
+					connectionPool.getResumeItemsFromAllServers(),
+					connectionPool.getNextUpFromAllServers()
+				]);
+				resumeItems = {Items: resumeItems};
+				nextUp = {Items: nextUp};
+			} else {
+				[resumeItems, nextUp] = await Promise.all([
+					api.getResumeItems(),
+					api.getNextUp()
+				]);
+			}
+
+			const volatileRows = [];
+
+			if (resumeItems.Items?.length > 0) {
+				volatileRows.push({
+					id: 'resume',
+					title: $L('Continue Watching'),
+					items: resumeItems.Items,
+					type: 'landscape'
+				});
+			}
+
+			if (nextUp.Items?.length > 0) {
+				volatileRows.push({
+					id: 'nextup',
+					title: $L('Next Up'),
+					items: nextUp.Items,
+					type: 'landscape'
+				});
+			}
+
+			dispatch({type: 'REFRESH_VOLATILE', volatileRows});
+			if (cachedRowData) {
+				const filtered = cachedRowData.filter(r => r.id !== 'resume' && r.id !== 'nextup');
+				cachedRowData = [...volatileRows, ...filtered];
+				cacheTimestamp = Date.now();
+				if (!unifiedMode) {
+					saveBrowseCache(cachedRowData, cachedLibraries, cachedFeaturedItems);
+				}
+			}
+		} catch (e) {
+			console.warn('[Browse] Background refresh failed:', e);
+		}
+	}, [api, unifiedMode, saveBrowseCache]);
+
 	const getUiColorRgb = useCallback((colorKey) => {
 		const colorMap = {
 			dark: '40, 40, 40',
@@ -439,6 +491,7 @@ const Browse = ({
 	useEffect(() => {
 		if (isVisible && !wasVisibleRef.current && !isLoading && filteredRows.length > 0) {
 			fetchFreshFeaturedItems();
+			refreshVolatileData();
 
 			setTimeout(() => {
 				if (lastFocusState && lastFocusState.rowIndex > 0) {
@@ -455,7 +508,7 @@ const Browse = ({
 			}, FOCUS_DELAY_MS);
 		}
 		wasVisibleRef.current = isVisible;
-	}, [isVisible, isLoading, filteredRows.length, fetchFreshFeaturedItems, settings.showFeaturedBar, featuredItems.length, scrollToRow]);
+	}, [isVisible, isLoading, filteredRows.length, fetchFreshFeaturedItems, refreshVolatileData, settings.showFeaturedBar, featuredItems.length, scrollToRow]);
 
 	useEffect(() => {
 		if (!isLoading && !initialFocusSetRef.current) {
@@ -566,65 +619,13 @@ const Browse = ({
 				// If volatile data is stale, refresh in background
 				if (!isCacheValid(persistedCache.timestamp, CACHE_TTL_VOLATILE)) {
 					console.log('[Browse] Volatile cache stale, refreshing in background');
-					refreshVolatileData(); // eslint-disable-line no-use-before-define
+					refreshVolatileData();
 				}
 				return;
 			}
 
 				dispatch({type: 'SET_LOADING', value: true});
 			await fetchAllData(); // eslint-disable-line no-use-before-define
-		};
-
-		const refreshVolatileData = async () => {
-			try {
-				let resumeItems, nextUp;
-
-				if (unifiedMode) {
-					[resumeItems, nextUp] = await Promise.all([
-						connectionPool.getResumeItemsFromAllServers(),
-						connectionPool.getNextUpFromAllServers()
-					]);
-					resumeItems = {Items: resumeItems};
-					nextUp = {Items: nextUp};
-				} else {
-					[resumeItems, nextUp] = await Promise.all([
-						api.getResumeItems(),
-						api.getNextUp()
-					]);
-				}
-
-				const volatileRows = [];
-
-				if (resumeItems.Items?.length > 0) {
-					volatileRows.push({
-						id: 'resume',
-						title: $L('Continue Watching'),
-						items: resumeItems.Items,
-						type: 'landscape'
-					});
-				}
-
-				if (nextUp.Items?.length > 0) {
-					volatileRows.push({
-						id: 'nextup',
-						title: $L('Next Up'),
-						items: nextUp.Items,
-						type: 'landscape'
-					});
-				}
-
-				dispatch({type: 'REFRESH_VOLATILE', volatileRows});
-				if (cachedRowData) {
-					const filtered = cachedRowData.filter(r => r.id !== 'resume' && r.id !== 'nextup');
-					cachedRowData = [...volatileRows, ...filtered];
-					cacheTimestamp = Date.now();
-					if (!unifiedMode) {
-						saveBrowseCache(cachedRowData, cachedLibraries, cachedFeaturedItems);
-					}
-				}
-			} catch (e) {
-				console.warn('[Browse] Background refresh failed:', e);
-			}
 		};
 
 		const fetchAllData = async () => {

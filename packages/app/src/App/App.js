@@ -560,6 +560,7 @@ const AppContent = (props) => {
 		setIsPlayerPaused(false);
 		setPlayingItem(null);
 		handleBack();
+		window.dispatchEvent(new CustomEvent('moonfin:browseRefresh'));
 	}, [handleBack]);
 
 	const handleOpenSearch = useCallback(() => {

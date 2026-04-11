@@ -517,6 +517,7 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 			...prev,
 			UserData: {...prev.UserData, Played: newState, PlayedPercentage: newState ? 100 : 0}
 		}));
+		window.dispatchEvent(new CustomEvent('moonfin:browseRefresh'));
 		window.requestAnimationFrame(() => Spotlight.focus('details-watched-btn') || Spotlight.focus('season-watched-btn'));
 	}, [effectiveApi, item]);
 
