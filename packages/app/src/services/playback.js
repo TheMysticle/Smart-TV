@@ -273,10 +273,11 @@ const extractChapters = (mediaSource) => {
 	}));
 };
 
-// Derive max streaming bitrate from device capabilities
-// Per LG AV format docs: 8K=100Mbps, UHD=60Mbps, FHD=40Mbps
+// Derive max streaming bitrate from device capabilities.
+// Per LG AV format docs: 8K=100Mbps, UHD=50Mbps on webOS 3, UHD=60Mbps on webOS 4+.
 const getAutoMaxBitrate = (capabilities) => {
 	if (capabilities.uhd8K) return 100_000_000;
+	if (capabilities.webosVersion === 3 && capabilities.uhd) return 50_000_000;
 	if (capabilities.uhd) return 60_000_000;
 	return 40_000_000;
 };

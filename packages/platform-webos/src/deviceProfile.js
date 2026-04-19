@@ -60,7 +60,7 @@ const getDocumentedContainerSupport = (webosVersion) => {
 		hls: true
 	};
 
-	if (webosVersion >= 4) {
+	if (webosVersion >= 3) {
 		supported.mkv = true;
 	}
 
@@ -75,7 +75,7 @@ const getDocumentedContainerSupport = (webosVersion) => {
 export const testHevcSupport = (lunaResult = null, webosVersion = 4) => {
 	if (lunaResult === true) return true;
 	if (lunaResult === false) return false;
-	return webosVersion >= 4;
+	return webosVersion >= 3;
 };
 
 export const testAv1Support = (lunaResult = null, webosVersion = 4) => {
@@ -87,7 +87,7 @@ export const testAv1Support = (lunaResult = null, webosVersion = 4) => {
 export const testVp9Support = (lunaResult = null, webosVersion = 4) => {
 	if (lunaResult === true) return true;
 	if (lunaResult === false) return false;
-	return webosVersion >= 4;
+	return webosVersion >= 3;
 };
 
 // Runtime check: does the platform's media pipeline actually handle HLS?

@@ -270,7 +270,11 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 		if (capabilities.uhd8K) {
 			maxBitrate = 100_000_000; // 8K: 100 Mbps (HEVC)
 		} else if (capabilities.uhd) {
-			maxBitrate = isHevc ? 60_000_000 : isH264 ? 50_000_000 : 60_000_000;
+			if (capabilities.webosVersion === 3) {
+				maxBitrate = 50_000_000;
+			} else {
+				maxBitrate = isHevc ? 60_000_000 : isH264 ? 50_000_000 : 60_000_000;
+			}
 		} else {
 			maxBitrate = 40_000_000; // FHD: 40 Mbps (H.264 and HEVC)
 		}
