@@ -66,7 +66,7 @@ const getBaseCategories = () => [
 ];
 
 const getBitrateOptions = () => [
-	{ value: 0, label: $L('Auto (No limit)') },
+	{ value: 0, label: $L('Auto (Recommended)') },
 	{ value: 120000000, label: '120 Mbps' },
 	{ value: 80000000, label: '80 Mbps' },
 	{ value: 60000000, label: '60 Mbps' },
@@ -736,7 +736,7 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 			{renderOptionItem('introAction', $L('Intro Action'), getMediaSegmentActionOptions(), $L('Ask to Skip'))}
 			{renderOptionItem('outroAction', $L('Outro Action'), getMediaSegmentActionOptions(), $L('Ask to Skip'))}
 			{renderToggleItem('autoPlay', $L('Auto Play Next'), $L('Automatically play the next episode'))}
-			{renderOptionItem('maxBitrate', $L('Maximum Bitrate'), getBitrateOptions(), $L('Auto (No limit)'))}
+			{renderOptionItem('maxBitrate', $L('Maximum Bitrate'), getBitrateOptions(), $L('Auto (Recommended)'))}
 			{renderOptionItem('seekStep', $L('Seek Step'), getSeekStepOptions(), $L('10 seconds'))}
 			{renderSliderItem('skipForwardLength', $L('Skip Forward Length'), 5, 30, 5, (v) => `${v}s`)}
 			{renderSliderItem('unpauseRewind', $L('Unpause Rewind'), 0, 10, 1, (v) => (v === 0 ? $L('Off') : `${v}s`))}

@@ -40,7 +40,7 @@ const selectMediaSource = (mediaSources, capabilities, options) => {
 
 	const scored = mediaSources.map(source => {
 		let score = 0;
-		const playMethodResult = getPlayMethod(source, capabilities);
+		const playMethodResult = getPlayMethod(source, capabilities, options);
 
 		if (playMethodResult === PlayMethod.DirectPlay) score += 1000;
 		else if (playMethodResult === PlayMethod.DirectStream) score += 500;
@@ -100,10 +100,7 @@ const selectMediaSource = (mediaSources, capabilities, options) => {
 };
 
 const determinePlayMethod = (mediaSource, capabilities, options = {}) => {
-	if (options.forceDirectPlay) {
-		console.log('[playback] Force DirectPlay — bypassing all checks, server SupportsDirectPlay:', mediaSource.SupportsDirectPlay);
-		return PlayMethod.DirectPlay;
-	}
+	if (options.forceDirectPlay) return PlayMethod.DirectPlay;
 
 	const mediaStreams = mediaSource?.MediaStreams || [];
 	const hasVideoStream = mediaStreams.some((s) => s.Type === 'Video');
@@ -115,34 +112,16 @@ const determinePlayMethod = (mediaSource, capabilities, options = {}) => {
 		return PlayMethod.Transcode;
 	}
 
-	// First check what our client-side capability check says
-	const computedMethod = getPlayMethod(mediaSource, capabilities);
+	const computedMethod = getPlayMethod(mediaSource, capabilities, options);
 	console.log('[playback] determinePlayMethod - computed:', computedMethod,
 		'serverDirectPlay:', mediaSource.SupportsDirectPlay,
 		'serverDirectStream:', mediaSource.SupportsDirectStream,
 		'hasTranscodingUrl:', !!mediaSource.TranscodingUrl);
 
-	// If client says we need transcode, we MUST transcode
-	// Don't fall back to DirectStream if audio/video isn't compatible
-	if (computedMethod === PlayMethod.Transcode) {
-		return PlayMethod.Transcode;
-	}
-
-	// Client says DirectPlay is OK
-	if (computedMethod === PlayMethod.DirectPlay && mediaSource.SupportsDirectPlay) {
-		return PlayMethod.DirectPlay;
-	}
-
-	// Client says DirectStream is OK
-	if (computedMethod === PlayMethod.DirectStream && mediaSource.SupportsDirectStream) {
-		return PlayMethod.DirectStream;
-	}
-
-	// Fallback
-	if (mediaSource.SupportsDirectStream) {
-		return PlayMethod.DirectStream;
-	}
-
+	if (computedMethod === PlayMethod.Transcode) return PlayMethod.Transcode;
+	if (computedMethod === PlayMethod.DirectPlay && mediaSource.SupportsDirectPlay) return PlayMethod.DirectPlay;
+	if (computedMethod === PlayMethod.DirectStream && mediaSource.SupportsDirectStream) return PlayMethod.DirectStream;
+	if (mediaSource.SupportsDirectStream) return PlayMethod.DirectStream;
 	return PlayMethod.Transcode;
 };
 

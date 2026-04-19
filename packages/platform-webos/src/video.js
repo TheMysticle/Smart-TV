@@ -109,13 +109,8 @@ export const findCompatibleAudioStreamIndex = (mediaSource, capabilities) => {
 	return -1;
 };
 
-export const getPlayMethod = (mediaSource, capabilities) => {
-	console.log('[webosVideo] getPlayMethod called with capabilities.truehd:', capabilities?.truehd, 'capabilities.dtshd:', capabilities?.dtshd);
-
-	if (!mediaSource) {
-		console.log('[webosVideo] No media source provided');
-		return 'Transcode';
-	}
+export const getPlayMethod = (mediaSource, capabilities, options = {}) => {
+	if (!mediaSource) return 'Transcode';
 
 	const container = (mediaSource.Container || '').toLowerCase();
 	const videoStream = mediaSource.MediaStreams?.find(s => s.Type === 'Video');
@@ -131,26 +126,6 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 		audioStream = audioStreams.find(s => s.IsDefault) || audioStreams[0];
 	}
 
-	console.log('[webosVideo] Media source analysis:', JSON.stringify({
-		container,
-		videoCodec: videoStream?.Codec,
-		defaultAudioIndex: mediaSource.DefaultAudioStreamIndex,
-		audioStreamIndex: audioStream?.Index,
-		audioCodec: audioStream?.Codec,
-		allAudioCodecs: audioStreams.map(s => ({ index: s.Index, codec: s.Codec, isDefault: s.IsDefault })),
-		videoBitrate: videoStream?.BitRate,
-		videoLevel: videoStream?.Level,
-		videoProfile: videoStream?.Profile,
-		videoWidth: videoStream?.Width,
-		videoHeight: videoStream?.Height,
-		videoBitDepth: videoStream?.BitDepth,
-		videoRangeType: videoStream?.VideoRangeType,
-		serverSupportsDirectPlay: mediaSource.SupportsDirectPlay,
-		serverSupportsDirectStream: mediaSource.SupportsDirectStream,
-		transcodingUrl: mediaSource.TranscodingUrl ? 'present' : 'none'
-	}));
-
-	// Build supported video codecs list
 	const videoCodec = (videoStream?.Codec || '').toLowerCase();
 	const supportedVideoCodecs = ['h264', 'avc', 'mpeg4', 'mpeg2', 'mpeg1'];
 	if (capabilities.hevc) supportedVideoCodecs.push('hevc', 'h265', 'hev1', 'hvc1');
@@ -161,8 +136,6 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 	// dvh1 (DV Profile 8) has an HEVC base layer playable without native DV
 	if (!capabilities.dolbyVision && capabilities.hevc) supportedVideoCodecs.push('dvh1');
 
-	// Build supported audio codecs list (with container-specific restrictions)
-	const audioCodec = (audioStream?.Codec || '').toLowerCase();
 	const supportedAudioCodecs = getSupportedAudioCodecs(capabilities, container);
 	const isAudioOnly = !videoStream && audioStreams.length > 0;
 
@@ -171,15 +144,6 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 	const hasCompatibleAudio = audioStreams.length === 0 || audioStreams.some(s => {
 		const codec = (s.Codec || '').toLowerCase();
 		return !codec || supportedAudioCodecs.includes(codec);
-	});
-
-	console.log('[webosVideo] Audio check:', {
-		defaultAudioCodec: audioCodec,
-		defaultAudioOk: !audioCodec || supportedAudioCodecs.includes(audioCodec),
-		hasCompatibleAudio,
-		compatibleStreams: audioStreams.filter(s => supportedAudioCodecs.includes((s.Codec || '').toLowerCase())).map(s => `${s.Index}:${s.Codec}`),
-		totalAudioStreams: audioStreams.length,
-		isAudioOnly
 	});
 
 	if (isAudioOnly) {
@@ -267,7 +231,9 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 		let maxBitrate;
 		const isHevc = ['hevc', 'h265', 'hev1', 'hvc1'].includes(videoCodec);
 		const isH264 = ['h264', 'avc'].includes(videoCodec);
-		if (capabilities.uhd8K) {
+		if (options.maxBitrate > 0) {
+			maxBitrate = options.maxBitrate;
+		} else if (capabilities.uhd8K) {
 			maxBitrate = 100_000_000; // 8K: 100 Mbps (HEVC)
 		} else if (capabilities.uhd) {
 			if (capabilities.webosVersion === 3) {
@@ -293,7 +259,6 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 	});
 
 	if (mediaSource.SupportsDirectPlay && videoOk && audioOk && containerOk && hdrOk && bitrateOk) {
-		console.log('[webosVideo] Result: DirectPlay');
 		return 'DirectPlay';
 	}
 
@@ -304,11 +269,9 @@ export const getPlayMethod = (mediaSource, capabilities) => {
 	// its TranscodingUrl with video passthrough + audio-only transcode, preserving
 	// HDR/Dolby Vision metadata.
 	if (mediaSource.SupportsDirectStream && videoOk && audioOk && containerOk && hdrOk && bitrateOk) {
-		console.log('[webosVideo] Result: DirectStream');
 		return 'DirectStream';
 	}
 
-	console.log('[webosVideo] Result: Transcode');
 	return 'Transcode';
 };
 
