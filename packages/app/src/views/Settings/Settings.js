@@ -714,14 +714,11 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 				$L('Merge Continue Watching & Next Up'),
 				$L('Combine into a single row')
 			)}
-			{renderToggleItem(
-				'useSeriesThumbnails',
-				$L('Use Series Thumbnails'),
-				$L('Show series artwork instead of individual episode images')
-			)}
 			{renderOptionItem('homeRowsPosterSize', $L('Poster Size'), getPosterSizeOptions(), $L('Default'))}
 			{renderOptionItem('homeRowsImageType', $L('Other Rows Image Type'), getImageTypeOptions(), $L('Poster'))}
+			{renderOptionItem('homeRowsEpisodeImageType', $L('Episodes in Other Rows'), getImageTypeOptions(), $L('Poster'))}
 			{renderOptionItem('continueWatchingImageType', $L('Continue Watching Image Type'), getImageTypeOptions(), $L('Thumb'))}
+			{renderOptionItem('continueWatchingEpisodeImageType', $L('Episodes in Continue Watching'), getImageTypeOptions(), $L('Poster'))}
 			{renderNavItem('homeRows', $L('Configure Home Rows'), $L('Customize which rows appear on home screen'), openHomeRows)}
 			{renderNavItem(
 				'hideLibraries',
