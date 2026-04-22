@@ -116,7 +116,7 @@ const getMediaBadges = (item, versionIndex = 0) => {
 
 const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onItemDeleted, backHandlerRef}) => {
 	const {api, serverUrl} = useAuth();
-	const {settings} = useSettings();
+	const {settings, toggleForceDirectPlayForItem, isForceDirectPlayEnabledForItem} = useSettings();
 
 	// Cross-server support
 	const effectiveApi = useMemo(() => {
@@ -875,6 +875,10 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, onI
 		window.requestAnimationFrame(() => Spotlight.focus('details-action-buttons'));
 	}, []);
 
+	const handleToggleForceDirectPlay = useCallback(() => {
+		toggleForceDirectPlayForItem(item.Id);
+	}, [item?.Id, toggleForceDirectPlayForItem]);
+
 	const handleOpenDeleteDialog = useCallback(() => {
 		setShowDeleteDialog(true);
 	}, []);
@@ -1332,6 +1336,20 @@ const handleSectionKeyDown = useCallback((ev) => {
 					</svg>
 				</div>
 				<span className={css.btnLabel}>{$L('Add to Playlist')}</span>
+			</SpottableDiv>
+			<SpottableDiv className={css.btnWrapper} onClick={handleToggleForceDirectPlay}>
+				<div className={css.btnAction}>
+					{isForceDirectPlayEnabledForItem(item.Id) ? (
+						<svg className={css.btnIcon} viewBox="0 -960 960 960" fill="currentColor">
+							<path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/>
+						</svg>
+					) : (
+						<svg className={css.btnIcon} viewBox="0 -960 960 960" fill="currentColor">
+							<path d="m249-207-42-42 231-231-231-231 42-42 231 231 231-231 42 42-231 231 231 231-42 42-231-231-231 231Z"/>
+						</svg>
+					)}
+				</div>
+				<span className={css.btnLabel}>{$L('Force Direct Play')}</span>
 			</SpottableDiv>
 			{item.CanDelete && (
 				<SpottableDiv className={css.btnWrapper} onClick={handleOpenDeleteDialog}>

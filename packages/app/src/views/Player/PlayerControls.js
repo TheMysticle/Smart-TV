@@ -76,6 +76,7 @@ export const usePlayerButtons = ({
 			{id: 'next', icon: <IconNext />, label: $L('Next'), action: 'next', disabled: !nextEpisode},
 			{id: 'speed', icon: <IconSpeed />, label: $L('Speed'), action: 'speed'},
 			{id: 'quality', icon: <IconQuality />, label: $L('Quality'), action: 'quality'},
+
 			{id: 'info', icon: <IconInfo />, label: $L('Info'), action: 'info'}
 		];
 	}, [chapters.length, nextEpisode, isAudioMode, isLiveTV]);

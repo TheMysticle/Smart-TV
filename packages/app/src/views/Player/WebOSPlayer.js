@@ -38,7 +38,7 @@ import {
 import css from './WebOSPlayer.module.less';
 
 const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, initialStartPositionTicks, onEnded, onBack, onPlayNext, audioPlaylist, onPausedChange}) => {
-	const {settings} = useSettings();
+	const {settings, updateSetting, toggleForceDirectPlayForItem, isForceDirectPlayEnabledForItem} = useSettings();
 	const {isInGroup, lastCommand} = useSyncPlay();
 	const syncPlayCommandRef = useRef(false);
 	const lastProcessedCommandRef = useRef(null);
@@ -82,6 +82,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [shuffleMode, setShuffleMode] = useState(false);
 	const [repeatMode, setRepeatMode] = useState('off');
 	const [isFavorite, setIsFavorite] = useState(false);
+	const [retryTrigger, setRetryTrigger] = useState(0);
 	const audioPlaylistIndex = useMemo(() => {
 		if (!audioPlaylist || !item) return -1;
 		return audioPlaylist.findIndex(t => t.Id === item.Id);
@@ -438,12 +439,13 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 					isLiveTV,
 					hasUserData: !!item.UserData
 				});
+				const hasItemForceDirectPlay = isForceDirectPlayEnabledForItem(item.Id);
 				const result = await playback.getPlaybackInfo(item.Id, {
 					startPositionTicks: startPosition,
 					maxBitrate: selectedQuality || settings.maxBitrate,
 					enableDirectPlay: !settings.preferTranscode,
 					enableDirectStream: !settings.preferTranscode,
-					forceDirectPlay: isLiveTV ? false : settings.forceDirectPlay,
+					forceDirectPlay: isLiveTV ? false : (settings.forceDirectPlay || hasItemForceDirectPlay),
 					mediaSourceId: initialMediaSourceId,
 					audioStreamIndex: initialAudioIndex,
 					subtitleStreamIndex: initialSubtitleIndex,
@@ -689,7 +691,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			}
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, initialAudioIndex, initialSubtitleIndex]);
+	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, initialAudioIndex, initialSubtitleIndex, retryTrigger]);
 
 	useEffect(() => {
 		if (mediaUrl) {
@@ -1425,6 +1427,18 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		}
 	}, [hasTriedTranscode, playMethod, item, selectedQuality, settings.maxBitrate, settings.stereoUpmixEnabled, mediaSourceId]);
 
+	// Handler for "Try Direct Play" button on error screen
+	const handleTryDirectPlay = useCallback(async () => {
+		console.log('[Player] User clicked "Try Direct Play" for item:', item.Id);
+		toggleForceDirectPlayForItem(item.Id);
+		setError(null);
+		setHasTriedTranscode(false);
+		// Clear media URL to trigger reload
+		setMediaUrl(null);
+		// Trigger effect to re-run with the new per-item force direct play setting
+		setRetryTrigger(prev => prev + 1);
+	}, [item.Id, toggleForceDirectPlayForItem]);
+
 	useEffect(() => {
 		handlersRef.current = {
 			onLoadedMetadata: handleLoadedMetadata,
@@ -1829,6 +1843,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		}
 	}, [item, isFavorite]);
 
+	const handleToggleForceDirectPlay = useCallback(() => {
+		updateSetting('forceDirectPlay', !settings.forceDirectPlay);
+	}, [settings.forceDirectPlay, updateSetting]);
+
 	const handleButtonAction = useCallback((action) => {
 		showControls();
 		switch (action) {
@@ -1847,9 +1865,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			case 'shuffle': handleToggleShuffle(); break;
 			case 'repeat': handleToggleRepeat(); break;
 			case 'favorite': handleToggleFavorite(); break;
+			case 'forceDirectPlay': handleToggleForceDirectPlay(); break;
 			default: break;
 		}
-	}, [showControls, handlePlayPause, handleRewind, handleForward, openModal, handlePlayNextEpisode, handleNextTrack, handlePrevTrack, handleToggleShuffle, handleToggleRepeat, handleToggleFavorite]);
+	}, [showControls, handlePlayPause, handleRewind, handleForward, openModal, handlePlayNextEpisode, handleNextTrack, handlePrevTrack, handleToggleShuffle, handleToggleRepeat, handleToggleFavorite, handleToggleForceDirectPlay]);
 
 	const handleControlButtonClick = useCallback((e) => {
 		const action = e.currentTarget.dataset.action;
@@ -2104,7 +2123,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				<div className={css.error}>
 					<h2>{$L('Playback Error')}</h2>
 					<p>{error}</p>
-					<Button onClick={onBack}>{$L('Go Back')}</Button>
+					<div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+						<Button onClick={handleTryDirectPlay}>{$L('Try Direct Play')}</Button>
+						<Button onClick={onBack}>{$L('Go Back')}</Button>
+					</div>
 				</div>
 			)}
 

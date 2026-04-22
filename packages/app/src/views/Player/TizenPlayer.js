@@ -69,7 +69,7 @@ const getRootFontSizePx = () => {
  * the web layer must be transparent in the video area for the content to show through.
  */
 const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialSubtitleIndex, initialStartPositionTicks, onEnded, onBack, onPlayNext, audioPlaylist, onPausedChange}) => {
-	const {settings} = useSettings();
+	const {settings, updateSetting, toggleForceDirectPlayForItem, isForceDirectPlayEnabledForItem} = useSettings();
 	const {isInGroup, lastCommand} = useSyncPlay();
 	const syncPlayCommandRef = useRef(false);
 	const lastProcessedCommandRef = useRef(null);
@@ -112,6 +112,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [shuffleMode, setShuffleMode] = useState(false);
 	const [repeatMode, setRepeatMode] = useState('off');
 	const [isFavorite, setIsFavorite] = useState(false);
+	const [retryTrigger, setRetryTrigger] = useState(0);
 
 	// Audio playlist tracking
 	const audioPlaylistIndex = useMemo(() => {
@@ -470,11 +471,12 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				const savedPosition = isLiveTV ? 0 : (item.UserData?.PlaybackPositionTicks || 0);
 				const startPosition = initialStartPositionTicks != null ? initialStartPositionTicks : ((!isLiveTV && resume !== false) ? savedPosition : 0);
 				const effectiveBitrate = selectedQuality || settings.maxBitrate || undefined;
+				const hasItemForceDirectPlay = isForceDirectPlayEnabledForItem(item.Id);
 				const result = await playback.getPlaybackInfo(item.Id, {
 					startPositionTicks: startPosition,
 					maxBitrate: effectiveBitrate,
 					preferTranscode: settings.preferTranscode,
-					forceDirectPlay: isLiveTV ? false : settings.forceDirectPlay,
+					forceDirectPlay: isLiveTV ? false : (settings.forceDirectPlay || hasItemForceDirectPlay),
 					item: item,
 					mediaSourceId: initialMediaSourceId,
 					audioStreamIndex: initialAudioIndex != null ? initialAudioIndex : undefined,
@@ -875,7 +877,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			pendingSeekMsRef.current = null;
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, applyDisplayWindow]);
+	}, [item, resume, selectedQuality, settings.maxBitrate, settings.preferTranscode, settings.forceDirectPlay, settings.subtitleMode, settings.skipIntro, applyDisplayWindow, retryTrigger]);
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return () => {};
@@ -1114,6 +1116,20 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	// Keep callback refs in sync
 	handleEndedCallbackRef.current = handleEnded;
 	handleErrorCallbackRef.current = handleError;
+
+	// Handler for "Try Direct Play" button on error screen
+	const handleTryDirectPlay = useCallback(async () => {
+		console.log('[Player] User clicked "Try Direct Play" for item:', item.Id);
+		toggleForceDirectPlayForItem(item.Id);
+		setError(null);
+		setHasTriedTranscode(false);
+		// Trigger media reload by clearing the current state
+		stopTimeUpdatePolling();
+		cleanupAVPlay();
+		avplayReadyRef.current = false;
+		// Trigger effect to re-run with the new per-item force direct play setting
+		setRetryTrigger(prev => prev + 1);
+	}, [item.Id, toggleForceDirectPlayForItem, stopTimeUpdatePolling]);
 
 	// ==============================
 	// Control Actions (AVPlay-based)
@@ -1542,6 +1558,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		}
 	}, [item, isFavorite]);
 
+	const handleToggleForceDirectPlay = useCallback(() => {
+		updateSetting('forceDirectPlay', !settings.forceDirectPlay);
+	}, [settings.forceDirectPlay, updateSetting]);
+
 	// Button action handler
 	const handleButtonAction = useCallback((action) => {
 		showControls();
@@ -1561,9 +1581,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			case 'shuffle': handleToggleShuffle(); break;
 			case 'repeat': handleToggleRepeat(); break;
 			case 'favorite': handleToggleFavorite(); break;
+			case 'forceDirectPlay': handleToggleForceDirectPlay(); break;
 			default: break;
 		}
-	}, [showControls, handlePlayPause, handleRewind, handleForward, openModal, handlePlayNextEpisode, handleNextTrack, handlePrevTrack, handleToggleShuffle, handleToggleRepeat, handleToggleFavorite]);
+	}, [showControls, handlePlayPause, handleRewind, handleForward, openModal, handlePlayNextEpisode, handleNextTrack, handlePrevTrack, handleToggleShuffle, handleToggleRepeat, handleToggleFavorite, handleToggleForceDirectPlay]);
 
 	// Wrapper for control button clicks - reads action from data attribute
 	const handleControlButtonClick = useCallback((e) => {
@@ -1944,7 +1965,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				<div className={css.error}>
 					<h2>{$L('Playback Error')}</h2>
 					<p>{error}</p>
-					<Button onClick={onBack}>{$L('Go Back')}</Button>
+					<div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+						<Button onClick={handleTryDirectPlay}>{$L('Try Direct Play')}</Button>
+						<Button onClick={onBack}>{$L('Go Back')}</Button>
+					</div>
 				</div>
 			</div>
 		);

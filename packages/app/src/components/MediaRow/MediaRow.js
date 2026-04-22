@@ -99,6 +99,7 @@ const MediaRow = ({
 							showServerBadge={showServerBadge}
 							showOverview={showOverview}
 							eagerLoad={rowIndex === 0}
+							rowId={rowId}
 						/>
 					))}
 				</div>

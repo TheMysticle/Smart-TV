@@ -10,7 +10,7 @@ const SpottableDiv = Spottable('div');
 const POSTER_SIZE_MULTIPLIERS = {small: 0.8, default: 1, large: 1.2, xlarge: 1.4};
 const BASE_SIZES = {portrait: [240, 360], landscape: [384, 216], square: [240, 240]};
 
-const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusItem, showServerBadge = false, showOverview = false, eagerLoad = false}) => {
+const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusItem, showServerBadge = false, showOverview = false, eagerLoad = false, rowId}) => {
 	const {settings} = useSettings();
 	const isLandscape = cardType === 'landscape';
 	const isSquare = cardType === 'square' || (cardType === 'portrait' && (item.Type === 'MusicAlbum' || item.Type === 'MusicArtist' || item.Type === 'Audio'));
@@ -29,7 +29,10 @@ const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusIte
 	}, [item._serverUrl, serverUrl]);
 
 	const imageUrl = useMemo(() => {
-		const imageType = settings.homeRowsImageType || 'poster';
+		// Use different image type setting based on row ID
+		const imageType = rowId === 'resume'
+			? (settings.continueWatchingImageType || 'thumb')
+			: (settings.homeRowsImageType || 'poster');
 
 		if (isLandscape && item.Type === 'Episode') {
 			if (settings.useSeriesThumbnails && item.SeriesId && item.SeriesPrimaryImageTag) {
@@ -78,7 +81,7 @@ const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusIte
 		}
 
 		return null;
-	}, [isLandscape, item.Type, item.ImageTags?.Primary, item.ImageTags?.Thumb, item.ImageTags?.Logo, item.Id, item.ParentThumbItemId, item.ParentBackdropItemId, item.BackdropImageTags, item.ParentLogoItemId, item.AlbumId, item.AlbumPrimaryImageTag, item.SeriesId, item.SeriesPrimaryImageTag, itemServerUrl, settings.homeRowsImageType, settings.useSeriesThumbnails]);
+	}, [isLandscape, item.Type, item.ImageTags?.Primary, item.ImageTags?.Thumb, item.ImageTags?.Logo, item.Id, item.ParentThumbItemId, item.ParentBackdropItemId, item.BackdropImageTags, item.ParentLogoItemId, item.AlbumId, item.AlbumPrimaryImageTag, item.SeriesId, item.SeriesPrimaryImageTag, itemServerUrl, settings.homeRowsImageType, settings.continueWatchingImageType, settings.useSeriesThumbnails, rowId]);
 
 	const handleClick = useCallback(() => {
 		onSelect?.(item);

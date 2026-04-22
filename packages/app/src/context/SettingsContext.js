@@ -73,6 +73,7 @@ const defaultSettings = {
 	useSeriesThumbnails: false,
 	homeRowsPosterSize: 'default',
 	homeRowsImageType: 'poster',
+	continueWatchingImageType: 'thumb',
 	focusColor: '#00a4dc',
 	nextUpBehavior: 'extended',
 	nextUpTimeout: 7,
@@ -172,7 +173,7 @@ const SYNCABLE_KEYS = [
 	'featuredTrailerPreview', 'unifiedLibraryMode', 'seasonalTheme',
 	'uiColor', 'uiOpacity', 'focusColor', 'showRatingLabels',
 	'themeMusicEnabled', 'themeMusicVolume', 'themeMusicOnHomeRows',
-	'homeRowsImageType', 'showClock', 'clockDisplay',
+	'homeRowsImageType', 'continueWatchingImageType', 'showClock', 'clockDisplay',
 	'backdropBlurHome', 'backdropBlurDetail',
 	'mediaBarSourceType', 'mediaBarLibraryIds', 'mediaBarCollectionIds',
 	'homeRows',
@@ -288,6 +289,44 @@ export function SettingsProvider({children}) {
 		saveToStorage('settings', defaultSettings);
 	}, []);
 
+	// Per-item Force Direct Play management
+	const [forceDirectPlayItems, setForceDirectPlayItems] = useState(new Set());
+
+	useEffect(() => {
+		getFromStorage('forceDirectPlayItems').then((stored) => {
+			if (Array.isArray(stored)) {
+				setForceDirectPlayItems(new Set(stored));
+			}
+		});
+	}, []);
+
+	const isForceDirectPlayEnabledForItem = useCallback((itemId) => {
+		return forceDirectPlayItems.has(itemId);
+	}, [forceDirectPlayItems]);
+
+	const toggleForceDirectPlayForItem = useCallback((itemId) => {
+		setForceDirectPlayItems(prev => {
+			const updated = new Set(prev);
+			if (updated.has(itemId)) {
+				updated.delete(itemId);
+			} else {
+				updated.add(itemId);
+			}
+			saveToStorage('forceDirectPlayItems', Array.from(updated));
+			return updated;
+		});
+	}, []);
+
+	const clearForceDirectPlayForItem = useCallback((itemId) => {
+		setForceDirectPlayItems(prev => {
+			if (!prev.has(itemId)) return prev;
+			const updated = new Set(prev);
+			updated.delete(itemId);
+			saveToStorage('forceDirectPlayItems', Array.from(updated));
+			return updated;
+		});
+	}, []);
+
 	const syncFromServer = useCallback(async (serverUrl, token) => {
 		try {
 			serverCredsRef.current = {serverUrl, token};
@@ -327,7 +366,10 @@ export function SettingsProvider({children}) {
 			updateSetting,
 			updateSettings,
 			resetSettings,
-			syncFromServer
+			syncFromServer,
+			isForceDirectPlayEnabledForItem,
+			toggleForceDirectPlayForItem,
+			clearForceDirectPlayForItem
 		}}>
 			{children}
 		</SettingsContext.Provider>

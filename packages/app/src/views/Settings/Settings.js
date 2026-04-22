@@ -720,7 +720,8 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 				$L('Show series artwork instead of individual episode images')
 			)}
 			{renderOptionItem('homeRowsPosterSize', $L('Poster Size'), getPosterSizeOptions(), $L('Default'))}
-			{renderOptionItem('homeRowsImageType', $L('Image Type'), getImageTypeOptions(), $L('Poster'))}
+			{renderOptionItem('homeRowsImageType', $L('Other Rows Image Type'), getImageTypeOptions(), $L('Poster'))}
+			{renderOptionItem('continueWatchingImageType', $L('Continue Watching Image Type'), getImageTypeOptions(), $L('Thumb'))}
 			{renderNavItem('homeRows', $L('Configure Home Rows'), $L('Customize which rows appear on home screen'), openHomeRows)}
 			{renderNavItem(
 				'hideLibraries',
