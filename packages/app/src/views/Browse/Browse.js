@@ -535,6 +535,13 @@ const Browse = ({
 		initialFocusSetRef.current = false;
 	}, [accessToken]);
 
+	// Clear cache when image type settings change so rows re-render with new images
+	useEffect(() => {
+		console.log('[Browse] Image settings changed - clearing row cache');
+		cachedRowData = null;
+		cacheTimestamp = null;
+	}, [settings.homeRowsImageType, settings.homeRowsEpisodeImageType, settings.continueWatchingImageType, settings.continueWatchingEpisodeImageType]);
+
 	useEffect(() => {
 		const handleBrowseRefresh = () => {
 			console.log('[Browse] Received refresh event - clearing caches');
