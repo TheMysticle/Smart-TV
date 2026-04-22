@@ -33,15 +33,17 @@ const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusIte
 		let imageType, episodeImageType;
 
 		if (rowId === 'resume' || rowId === 'continue-nextup') {
-			imageType = settings.continueWatchingImageType || 'thumb';
+			// Episodes use continueWatchingEpisodeImageType, Series use continueWatchingImageType
 			episodeImageType = settings.continueWatchingEpisodeImageType || 'poster';
+			imageType = settings.continueWatchingImageType || 'thumb';
 		} else {
-			imageType = settings.homeRowsImageType || 'poster';
+			// Episodes use homeRowsEpisodeImageType, Series use homeRowsImageType
 			episodeImageType = settings.homeRowsEpisodeImageType || 'poster';
+			imageType = settings.homeRowsImageType || 'poster';
 		}
 
 		// Special handling for episodes - use episodeImageType to show series images
-		if (item.Type === 'Episode' && item.SeriesId && item.SeriesPrimaryImageTag) {
+		if (item.Type === 'Episode' && item.SeriesId) {
 			if (episodeImageType === 'backdrop') {
 				if (item.ParentBackdropItemId) {
 					return getImageUrl(itemServerUrl, item.ParentBackdropItemId, 'Backdrop', {maxWidth: 400, quality: 80});
@@ -110,7 +112,7 @@ const MediaCard = ({item, serverUrl, cardType = 'portrait', onSelect, onFocusIte
 		}
 
 		return null;
-	}, [item.Type, item.ImageTags?.Primary, item.ImageTags?.Thumb, item.ImageTags?.Logo, item.Id, item.ParentThumbItemId, item.ParentBackdropItemId, item.BackdropImageTags, item.ParentLogoItemId, item.AlbumId, item.AlbumPrimaryImageTag, item.SeriesId, item.SeriesPrimaryImageTag, itemServerUrl, settings.homeRowsImageType, settings.homeRowsEpisodeImageType, settings.continueWatchingImageType, settings.continueWatchingEpisodeImageType, rowId]);
+	}, [item.Type, item.ImageTags?.Primary, item.ImageTags?.Thumb, item.ImageTags?.Logo, item.Id, item.ParentThumbItemId, item.ParentBackdropItemId, item.BackdropImageTags, item.ParentLogoItemId, item.AlbumId, item.AlbumPrimaryImageTag, item.SeriesId, itemServerUrl, settings.homeRowsImageType, settings.homeRowsEpisodeImageType, settings.continueWatchingImageType, settings.continueWatchingEpisodeImageType, rowId]);
 
 	const handleClick = useCallback(() => {
 		onSelect?.(item);
